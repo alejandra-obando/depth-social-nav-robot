@@ -14,3 +14,13 @@ The robot keeps the link with its person through an image or QR sign that the pe
 ## Status
 
 Work in progress.
+
+## Repository structure
+
+| Folder | Contents |
+|--------|----------|
+| `hardware/` | CAD, electronics and bill of materials |
+| `software/` | ROS 2 workspace that runs on the robot |
+| `neural/` | Hand-written neural models and their experiments |
+| `simulation/` | Simulated room for testing |
+| `docs/` | Rules, diagrams and presentation |
