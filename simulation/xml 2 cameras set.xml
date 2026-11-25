@@ -1,0 +1,145 @@
+<!--
+  Wallens: robot con sus dos camaras (generado desde el CAD de Onshape, carpeta v2).
+  Camaras (orientacion tal cual el CAD):
+    d415_prof  : Intel RealSense D415, profundidad 65 x 40 deg (adelante)
+    d415_color : Intel RealSense D415, color 69 x 42 deg (adelante)
+    c270       : Logitech C270, ~48.8 x 28.6 deg (55 deg diagonal), atras, ~47 deg hacia arriba
+  Conos de vision (1.5 m) en el grupo de geoms 3: en el viewer se activan con la tecla 3
+  (o en Rendering > Geom groups).
+  Motores de velocidad (rad/s): motor_izq, motor_der. Las ruedas estan espejadas:
+    adelante (hacia la D415, -Y) = motor_izq negativo y motor_der positivo.
+  Las mallas se leen de v2/assets: mover este archivo junto con la carpeta v2.
+-->
+<mujoco model="wallens_2_camaras">
+  <compiler angle="radian" meshdir="v2/assets" />
+  <option integrator="implicitfast" />
+  <!-- tamano real del robot: sin esto los conos de 1.5 m inflan los marcadores del viewer (centro de masa, camaras...) -->
+  <statistic extent="0.6" meansize="0.02" center="0 0 0.1" />
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
+    <rgba haze="0.15 0.25 0.35 1" />
+    <global azimuth="160" elevation="-20" />
+  </visual>
+  <asset>
+    <mesh name="part_1" content_type="model/stl" file="part_1.stl" />
+    <mesh name="piso_3" content_type="model/stl" file="piso_3.stl" />
+    <mesh name="part_1__2" content_type="model/stl" file="part_1__2.stl" />
+    <mesh name="part_1__3" content_type="model/stl" file="part_1__3.stl" />
+    <mesh name="bateria" content_type="model/stl" file="bateria.stl" />
+    <mesh name="part_2" content_type="model/stl" file="part_2.stl" />
+    <mesh name="ld19_middle" content_type="model/stl" file="ld19_middle.stl" />
+    <mesh name="body107" content_type="model/stl" file="body107.stl" />
+    <mesh name="atornilla" content_type="model/stl" file="atornilla.stl" />
+    <mesh name="part_1__4" content_type="model/stl" file="part_1__4.stl" />
+    <mesh name="part_1__5" content_type="model/stl" file="part_1__5.stl" />
+    <mesh name="dummy_dc12" content_type="model/stl" file="dummy_dc12.stl" />
+    <mesh name="part_1__6" content_type="model/stl" file="part_1__6.stl" />
+    <mesh name="part_1__7" content_type="model/stl" file="part_1__7.stl" />
+    <mesh name="pcb_potencia" content_type="model/stl" file="pcb_potencia.stl" />
+    <mesh name="part_1__8" content_type="model/stl" file="part_1__8.stl" />
+    <mesh name="part_2__2" content_type="model/stl" file="part_2__2.stl" />
+    <mesh name="part_1__9" content_type="model/stl" file="part_1__9.stl" />
+    <mesh name="acople_bateria" content_type="model/stl" file="acople_bateria.stl" />
+    <mesh name="part_3" content_type="model/stl" file="part_3.stl" />
+    <mesh name="part_1__10" content_type="model/stl" file="part_1__10.stl" />
+    <mesh name="logitechc270" content_type="model/stl" file="logitechc270.stl" />
+    <mesh name="raspberry_pi_3_bar_180_2x20" content_type="model/stl" file="raspberry_pi_3_bar_180_2x20.stl" />
+    <mesh name="ubec_8a" content_type="model/stl" file="ubec_8a.stl" />
+    <mesh name="part_2__3" content_type="model/stl" file="part_2__3.stl" />
+    <mesh name="part_3__2" content_type="model/stl" file="part_3__2.stl" />
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072" />
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300" />
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2" />
+  </asset>
+  <worldbody>
+    <light pos="0 0 3.5" dir="0 0 -1" directional="true" />
+    <geom name="floor" size="0 0 0.05" pos="0 0 0" type="plane" material="groundplane" />
+    <body name="base" pos="0 0 0.10">
+      <freejoint name="base_free" />
+      <geom pos="0.0928181 0.0109897 0" quat="1.32679e-06 0 0 1" type="mesh" rgba="0.917647 0.917647 0.917647 1" mesh="part_1" />
+      <geom pos="1.82778e-05 -0.00326026 0.1135" quat="1 0 0 0" type="mesh" rgba="0.501961 0.501961 0.501961 1" mesh="piso_3" />
+      <geom pos="-0.0193319 0.10924 -0.005356" type="mesh" rgba="0.615686 0.811765 0.929412 1" mesh="part_1__2" />
+      <geom pos="-0.125182 0.0109897 0" quat="1.32679e-06 0 0 -1" type="mesh" rgba="0.917647 0.917647 0.917647 1" mesh="part_1__3" />
+      <geom pos="-0.0204017 -0.0135469 0.027104" quat="0.707105 0 0 0.707108" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="bateria" />
+      <geom pos="1.82778e-05 -0.00326026 0.1135" quat="1 0 0 0" type="mesh" rgba="0.647059 0.647059 0.647059 1" mesh="part_2" />
+      <geom pos="1.82778e-05 -0.0918603 0.1187" quat="1 0 0 0" type="mesh" rgba="0.552941 0.552941 0.552941 1" mesh="ld19_middle" />
+      <geom pos="0.119368 -0.0170173 0.000174232" quat="0.707105 0 0 -0.707108" type="mesh" rgba="1 0.937255 0.137255 1" mesh="body107" />
+      <geom pos="7.21e-10 -4.14898e-06 0" quat="1 0 0 0" type="mesh" rgba="0 0 0 1" mesh="atornilla" />
+      <geom pos="0.0820183 0.0767397 0.0535" type="mesh" rgba="0.701961 0.701961 0.701961 1" mesh="part_1__4" />
+      <geom pos="1.82778e-05 -0.00326026 0.0535" quat="1.76031e-12 1.32679e-06 -1 -1.32679e-06" type="mesh" rgba="0.8 0.8 0.8 1" mesh="part_1__5" />
+      <geom pos="-0.108982 -0.00326026 0.01125" quat="0.499998 -0.5 -0.500002 0.5" type="mesh" rgba="0.231373 0.380392 0.705882 1" mesh="dummy_dc12" />
+      <geom pos="1.81099e-05 -0.11576 -0.005356" quat="1.32679e-06 1 0 0" type="mesh" rgba="0.498039 0.498039 0.498039 1" mesh="part_1__6" />
+      <geom pos="1.81099e-05 -0.00326026 -0.0033" quat="1 0 0 0" type="mesh" rgba="0.8 0.8 0.8 1" mesh="part_1__7" />
+      <geom pos="-0.0360067 0.0530573 0.000374252" quat="1 0 0 0" type="mesh" rgba="0.654902 0.823529 0.576471 1" mesh="pcb_potencia" />
+      <geom pos="0.109018 -0.00326026 0.01125" quat="0.499998 -0.5 0.500002 -0.5" type="mesh" rgba="0.231373 0.380392 0.705882 1" mesh="dummy_dc12" />
+      <geom pos="-0.0130217 0.00711974 0.04645" quat="0.707105 -0.707108 0 0" type="mesh" rgba="0.866667 0.909804 1 1" mesh="part_1__8" />
+      <geom pos="1.82778e-05 -0.00326026 0.0605" quat="1.76043e-12 1.32679e-06 1 1.32679e-06" type="mesh" rgba="0.647059 0.647059 0.647059 1" mesh="part_2__2" />
+      <geom pos="-0.0919819 -0.0790718 0" type="mesh" rgba="0.901961 0.878431 0.811765 1" mesh="part_1__9" />
+      <geom pos="1.81099e-05 0.10924 -0.005356" quat="1.32679e-06 1 0 0" type="mesh" rgba="0.498039 0.498039 0.498039 1" mesh="part_1__6" />
+      <geom pos="-0.0379017 -0.0051119 0" quat="1 0 0 0" type="mesh" rgba="0.647059 0.647059 0.647059 1" mesh="acople_bateria" />
+      <geom pos="0.0950183 -0.0682603 0.0535" type="mesh" rgba="0.701961 0.701961 0.701961 1" mesh="part_1__4" />
+      <geom pos="0.125218 -0.0175103 0" quat="1 0 0 0" type="mesh" rgba="0.917647 0.917647 0.917647 1" mesh="part_1__3" />
+      <geom pos="-0.0819817 0.0767397 0.0535" type="mesh" rgba="0.701961 0.701961 0.701961 1" mesh="part_1__4" />
+      <geom pos="0.0193681 0.10924 -0.005356" type="mesh" rgba="0.615686 0.811765 0.929412 1" mesh="part_1__2" />
+      <geom pos="0.000282246 -0.00251027 0.1085" quat="1.32679e-06 0 0 1" type="mesh" rgba="0.231373 0.380392 0.705882 1" mesh="part_3" />
+      <geom pos="-0.0379817 -0.14061 0.0710241" quat="1.32679e-06 -1 0 0" type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="part_1__10" />
+      <geom pos="-0.0949817 -0.0682603 0.0535" type="mesh" rgba="0.701961 0.701961 0.701961 1" mesh="part_1__4" />
+      <geom pos="0.00287092 0.145113 0.12209" quat="1.2258e-06 5.07742e-07 0.382683 0.92388" type="mesh" rgba="0.294118 0.294118 0.294118 1" mesh="logitechc270" />
+      <geom pos="0.0920183 -0.0790723 0" type="mesh" rgba="0.901961 0.878431 0.811765 1" mesh="part_1__9" />
+      <geom pos="-0.0927817 -0.0175103 0" quat="1 0 0 0" type="mesh" rgba="0.917647 0.917647 0.917647 1" mesh="part_1" />
+      <geom pos="0.00596024 -0.00567098 0.05483" quat="1 0 0 0" type="mesh" rgba="0.647059 0.517647 0 1" mesh="raspberry_pi_3_bar_180_2x20" />
+      <geom pos="-0.0193319 -0.11576 -0.005356" type="mesh" rgba="0.615686 0.811765 0.929412 1" mesh="part_1__2" />
+      <geom pos="-1.96386e-05 0.0579897 0.0575" quat="0.707105 0 0 -0.707108" type="mesh" rgba="0.34902 0.376471 0.4 1" mesh="ubec_8a" />
+      <geom pos="0.0193681 -0.11576 -0.005356" type="mesh" rgba="0.615686 0.811765 0.929412 1" mesh="part_1__2" />
+      <body name="part_2" pos="0.130218 -0.00326026 0.01125" quat="0.647845 0.283365 -0.647847 -0.283365">
+        <inertial pos="9.60692e-07 9.60663e-07 -0.00822273" quat="0.499993 0.5 -0.500007 0.5" mass="0.070571" diaginertia="5.496e-05 2.94914e-05 2.94914e-05" />
+        <joint name="rueda1_wheel" pos="0 0 0" axis="0 0 1" actuatorfrcrange="-10 10" />
+        <geom pos="0 0 0.019" quat="1.32679e-06 1 0 0" type="mesh" rgba="0.4 0.4 0.4 1" mesh="part_2__3" />
+        <geom pos="0 0 0.019" quat="9.38184e-07 -0.707105 0.707108 -9.38187e-07" type="mesh" rgba="0 0 0 1" mesh="part_3__2" />
+      </body>
+      <body name="part_2_2" pos="-0.130182 -0.00326026 0.01125" quat="9.38184e-07 0.707105 -9.38187e-07 0.707108">
+        <inertial pos="9.60692e-07 9.60663e-07 -0.00822273" quat="0.499993 0.5 -0.500007 0.5" mass="0.070571" diaginertia="5.496e-05 2.94914e-05 2.94914e-05" />
+        <joint name="rueda2_wheel" pos="0 0 0" axis="0 0 1" actuatorfrcrange="-10 10" />
+        <geom pos="0 0 0.019" quat="9.38184e-07 0.707105 -0.707108 -9.38187e-07" type="mesh" rgba="0 0 0 1" mesh="part_3__2" />
+        <geom pos="0 0 0.019" quat="1.32679e-06 -1 0 0" type="mesh" rgba="0.4 0.4 0.4 1" mesh="part_2__3" />
+      </body>
+      <body name="d415_prof_frame" pos="-0.000148705 -0.16291 0.0721212" quat="-0.00103395 -0.00112383 0.735924 0.677063">
+        <camera name="d415_prof" pos="0 0 0" fovy="40.00" mode="fixed" />
+        <geom name="fov_d415_prof_0" type="capsule" size="0.003" fromto="0 0 0 -0.955605 -0.545955 -1.5" rgba="1 0.9 0 0.7" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_d415_prof_1" type="capsule" size="0.003" fromto="0 0 0 -0.955605 0.545955 -1.5" rgba="1 0.9 0 0.7" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_d415_prof_2" type="capsule" size="0.003" fromto="0 0 0 0.955605 -0.545955 -1.5" rgba="1 0.9 0 0.7" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_d415_prof_3" type="capsule" size="0.003" fromto="0 0 0 0.955605 0.545955 -1.5" rgba="1 0.9 0 0.7" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_d415_prof_4" type="capsule" size="0.003" fromto="-0.955605 -0.545955 -1.5 -0.955605 0.545955 -1.5" rgba="1 0.9 0 0.7" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_d415_prof_5" type="capsule" size="0.003" fromto="-0.955605 0.545955 -1.5 0.955605 0.545955 -1.5" rgba="1 0.9 0 0.7" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_d415_prof_6" type="capsule" size="0.003" fromto="0.955605 0.545955 -1.5 0.955605 -0.545955 -1.5" rgba="1 0.9 0 0.7" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_d415_prof_7" type="capsule" size="0.003" fromto="0.955605 -0.545955 -1.5 -0.955605 -0.545955 -1.5" rgba="1 0.9 0 0.7" mass="0" contype="0" conaffinity="0" group="3" />
+      </body>
+      <body name="d415_color_frame" pos="-0.000148705 -0.16291 0.0721212" quat="-0.00103395 -0.00112383 0.735924 0.677063">
+        <camera name="d415_color" pos="0 0 0" fovy="42.00" mode="fixed" />
+        <geom name="fov_d415_color_0" type="capsule" size="0.003" fromto="0 0 0 -1.03092 -0.575796 -1.5" rgba="1 0.45 0 0.5" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_d415_color_1" type="capsule" size="0.003" fromto="0 0 0 -1.03092 0.575796 -1.5" rgba="1 0.45 0 0.5" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_d415_color_2" type="capsule" size="0.003" fromto="0 0 0 1.03092 -0.575796 -1.5" rgba="1 0.45 0 0.5" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_d415_color_3" type="capsule" size="0.003" fromto="0 0 0 1.03092 0.575796 -1.5" rgba="1 0.45 0 0.5" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_d415_color_4" type="capsule" size="0.003" fromto="-1.03092 -0.575796 -1.5 -1.03092 0.575796 -1.5" rgba="1 0.45 0 0.5" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_d415_color_5" type="capsule" size="0.003" fromto="-1.03092 0.575796 -1.5 1.03092 0.575796 -1.5" rgba="1 0.45 0 0.5" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_d415_color_6" type="capsule" size="0.003" fromto="1.03092 0.575796 -1.5 1.03092 -0.575796 -1.5" rgba="1 0.45 0 0.5" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_d415_color_7" type="capsule" size="0.003" fromto="1.03092 -0.575796 -1.5 -1.03092 -0.575796 -1.5" rgba="1 0.45 0 0.5" mass="0" contype="0" conaffinity="0" group="3" />
+      </body>
+      <body name="c270_frame" pos="0.00996995 0.146518 0.124735" quat="0.365314 0.930844 0.00810302 0.00318006">
+        <camera name="c270" pos="0 0 0" fovy="28.63" mode="fixed" />
+        <geom name="fov_c270_0" type="capsule" size="0.003" fromto="0 0 0 -0.68057 -0.382821 -1.5" rgba="0.1 0.9 1 0.7" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_c270_1" type="capsule" size="0.003" fromto="0 0 0 -0.68057 0.382821 -1.5" rgba="0.1 0.9 1 0.7" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_c270_2" type="capsule" size="0.003" fromto="0 0 0 0.68057 -0.382821 -1.5" rgba="0.1 0.9 1 0.7" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_c270_3" type="capsule" size="0.003" fromto="0 0 0 0.68057 0.382821 -1.5" rgba="0.1 0.9 1 0.7" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_c270_4" type="capsule" size="0.003" fromto="-0.68057 -0.382821 -1.5 -0.68057 0.382821 -1.5" rgba="0.1 0.9 1 0.7" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_c270_5" type="capsule" size="0.003" fromto="-0.68057 0.382821 -1.5 0.68057 0.382821 -1.5" rgba="0.1 0.9 1 0.7" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_c270_6" type="capsule" size="0.003" fromto="0.68057 0.382821 -1.5 0.68057 -0.382821 -1.5" rgba="0.1 0.9 1 0.7" mass="0" contype="0" conaffinity="0" group="3" />
+        <geom name="fov_c270_7" type="capsule" size="0.003" fromto="0.68057 -0.382821 -1.5 -0.68057 -0.382821 -1.5" rgba="0.1 0.9 1 0.7" mass="0" contype="0" conaffinity="0" group="3" />
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <velocity name="motor_izq" joint="rueda1_wheel" kv="0.4" ctrlrange="-20 20" />
+    <velocity name="motor_der" joint="rueda2_wheel" kv="0.4" ctrlrange="-20 20" />
+  </actuator>
+</mujoco>
