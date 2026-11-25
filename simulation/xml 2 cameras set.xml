@@ -8,10 +8,10 @@
   (o en Rendering > Geom groups).
   Motores de velocidad (rad/s): motor_izq, motor_der. Las ruedas estan espejadas:
     adelante (hacia la D415, -Y) = motor_izq negativo y motor_der positivo.
-  Las mallas se leen de v2/assets: mover este archivo junto con la carpeta v2.
+  Las mallas se leen de la carpeta assets/ al lado de este archivo.
 -->
 <mujoco model="wallens_2_camaras">
-  <compiler angle="radian" meshdir="v2/assets" />
+  <compiler angle="radian" meshdir="assets" />
   <option integrator="implicitfast" />
   <!-- tamano real del robot: sin esto los conos de 1.5 m inflan los marcadores del viewer (centro de masa, camaras...) -->
   <statistic extent="0.6" meansize="0.02" center="0 0 0.1" />
