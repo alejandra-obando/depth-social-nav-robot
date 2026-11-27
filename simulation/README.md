@@ -1,7 +1,11 @@
 # Simulation
 
-Simulated 7 m × 7 m room with obstacles and people (MuJoCo), used to test the neural architecture
-in [`../neural`](../neural) before it goes on the real robot.
+Simulated 7 m × 7 m room with obstacles and people (MuJoCo), used to test the controllers before they go on
+the real robot:
+
+- the **conventional controller** in [`../software`](../software) (what the robot runs for the exam), with
+  `run_conventional.py`, see [below](#conventional-controller);
+- the **neural architecture** in [`../neural`](../neural), with `run_exam.py`.
 
 ## Robot model with both cameras
 
@@ -20,7 +24,48 @@ python -m mujoco.viewer --mjcf="simulation/xml 2 cameras set.xml"
   default mesh friction the chassis dragged and the robot barely moved. Measured now: 0.185 m/s for
   5 rad/s at the wheels (wheel radius 37.5 mm), effective track 0.29 m.
 
-## Running the exam in simulation
+## Conventional controller
+
+`run_conventional.py` runs `software/src/navigation/navigation/navigator.py`, **the same code as the ROS 2
+node**, and gives it what the real sensors would:
+
+- the person's signs carry real **tag36h11** images (ID 0 on the back, ID 1 on the chest, black square 16 cm);
+  the D415 colour and C270 images are **rendered** (640 × 360) and passed to the robot's AprilTag detector;
+- the D415 **depth image is rendered** and passed to the robot's depth-obstacle code;
+- the LD19 scan and the odometry come from `sensors.py`, as for the neural architecture.
+
+```bash
+.venv/bin/pip install -r simulation/requirements.txt
+.venv/bin/python -m simulation.run_conventional --scenario full --seed 0      # plot + JSON in simulation/results/
+.venv/bin/python -m simulation.run_conventional --scenario full --view        # watch it in the MuJoCo viewer
+.venv/bin/python -m simulation.batch_conventional --seeds 6                   # every scenario, Markdown table
+```
+
+Rendering needs OpenGL; without a display the scripts use `MUJOCO_GL=egl`. A run takes about one minute.
+
+### Results (6 seeds per scenario, 2026-11-27)
+
+| Scenario | Both phases done | Link losses (phase 1) | Waits (phase 2) | Serious faults | Minor faults | Max distance [m] | Time > 1.5 m [s] | Start error [m] | Mean time [s] |
+|---|---|---|---|---|---|---|---|---|---|
+| empty | 6/6 | 0 | 6 | 0 | 0 | 1.40 | 0.0 | 0.29 | 86 |
+| static | 6/6 | 35 | 12 | 0 | 0 | 1.40 | 0.0 | 0.29 | 98 |
+| moving | 6/6 | 35 | 12 | 0 | 0 | 1.40 | 0.0 | 0.29 | 98 |
+| people | 6/6 | 41 | 16 | 0 | 0 | 1.40 | 0.0 | 0.31 | 102 |
+| full | 6/6 | 41 | 16 | 0 | 0 | 1.40 | 0.0 | 0.31 | 102 |
+
+No collisions. Losses and waits are summed over the 6 seeds.
+
+- **30/30 runs complete both phases**; the person is never more than 1.4 m away in phase 2 (limit 1.5 m).
+- **Depth memory matters.** With a 4 s memory a stack that left the D415 view was forgotten while the robot
+  turned and it touched one (minor fault). A 20 s memory alone left "ghost" points where the person had walked
+  (128 losses, 2 runs not completed). The final version keeps a depth point only if the LiDAR has nothing
+  within 0.25 m of it (the LiDAR already sees people and walls), and clears it when the camera looks again.
+- `moving` equals `static` and `full` equals `people`: in these layouts the moving briefcase never crosses the
+  robot's path. A layout where it does is still to be added.
+- The simulation runs with `v_follow` 0.22 m/s; on the robot the second-term driver caps it at 0.19 m/s
+  (`config/social_nav.yaml`).
+
+## Running the neural architecture in simulation
 
 From the repository root:
 
@@ -46,11 +91,14 @@ stack layout, and the noise of the sensors. Ablations: `--no-memory`, `--no-moti
 | `people.py` | The guide person (walks ahead and stops if the robot falls behind, then walks behind the robot in phase 2, with a pause to test waiting) and walkers driven by a social force model (Helbing & Molnár 1995). |
 | `run_exam.py` | Control loop at 20 Hz: sensors → `SocialNavNet` → wheel speeds. Measures the rubric: robot–person distance, collisions (serious / during a manoeuvre), link losses, corner, return to start, time. |
 | `batch.py` | Runs many seeds and the ablations, prints the results table. |
+| `cameras.py` | Rendered camera images (grey and depth) and each camera's pose on the robot, for the conventional controller. |
+| `run_conventional.py`, `batch_conventional.py` | The same loop and metrics with the conventional controller; many seeds and scenarios. |
+| `software_path.py` | Makes `software/src` importable without building the ROS workspace. |
 
-The sign "detector" is geometric: the sign counts as seen if its centre is inside the camera's field of view,
+For the neural architecture the sign "detector" is geometric: the sign counts as seen if its centre is inside the camera's field of view,
 within range, facing the camera and not occluded. The real QR/pattern detection must be tested on the robot.
 
-## Results (8 seeds, `full` scenario)
+## Results of the neural architecture (8 seeds, `full` scenario)
 
 | Variant | Both phases done | Link losses (phase 1) | Serious faults | Minor faults | Max distance [m] | Time > 1.5 m [s] | Mean time [s] |
 |---|---|---|---|---|---|---|---|

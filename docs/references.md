@@ -65,5 +65,45 @@ presentation: the notes below summarise their abstracts.
     LGMD2 neurons in juvenile locusts. [arXiv](https://arxiv.org/abs/1801.06452)
     – A possible alternative to the Reichardt detector for obstacles that approach the robot.
 
+## Conventional control
+
+Used by the conventional controller ([`conventional_control.md`](conventional_control.md)). Bibliographic data
+checked against the DOI records on 27 November 2026.
+
+16. **Siegwart, R., Nourbakhsh, I. R. & Scaramuzza, D. (2011).** *Introduction to Autonomous Mobile Robots*,
+    2nd ed. MIT Press, ISBN 978-0-262-01535-6.
+    – Chapter 3: kinematics of the differential drive (`diff_drive.py`).
+17. **Aicardi, M., Casalino, G., Bicchi, A. & Balestrino, A. (1995).** Closed loop steering of unicycle-like
+    vehicles via Lyapunov techniques. *IEEE Robotics & Automation Magazine* 2(1):27–35.
+    [DOI](https://doi.org/10.1109/100.388294)
+    – Go-to-goal law used to drive back to the start corner (`controllers.py`, `GoToGoal`).
+18. **Olson, E. (2011).** AprilTag: a robust and flexible visual fiducial system. *ICRA 2011*, 3400–3407.
+    [DOI](https://doi.org/10.1109/ICRA.2011.5979561) ·
+    [Open copy](https://april.eecs.umich.edu/media/pdfs/olson2011tags.pdf)
+19. **Wang, J. & Olson, E. (2016).** AprilTag 2: efficient and robust fiducial detection. *IROS 2016*,
+    4193–4198. [DOI](https://doi.org/10.1109/IROS.2016.7759617) ·
+    [Open copy](https://april.eecs.umich.edu/pdfs/wang2016iros.pdf)
+20. **Krogius, M., Haggenmiller, A. & Olson, E. (2019).** Flexible layouts for fiducial tags. *IROS 2019*,
+    1898–1903. [DOI](https://doi.org/10.1109/IROS40897.2019.8967787)
+    – 18–20: the AprilTag family, its detector and AprilTag 3, the version in `pupil-apriltags`
+    (`apriltag_detector.py`).
+21. **Welch, G. & Bishop, G. (2006).** An introduction to the Kalman filter. Technical report TR 95-041,
+    University of North Carolina at Chapel Hill.
+    [UNC technical report](https://www.cs.unc.edu/techreports/95-041.pdf)
+    – The filter in `person_tracker.py`.
+22. **Gockley, R., Forlizzi, J. & Simmons, R. (2007).** Natural person-following behavior for social robots.
+    *HRI 2007*, 17–24. [DOI](https://doi.org/10.1145/1228716.1228720)
+    – Direction-following: drive towards where the person is (`controllers.py`, `FollowController`).
+23. **Borenstein, J. & Koren, Y. (1991).** The vector field histogram – fast obstacle avoidance for mobile
+    robots. *IEEE Transactions on Robotics and Automation* 7(3):278–288.
+    [DOI](https://doi.org/10.1109/70.88137)
+24. **Ulrich, I. & Borenstein, J. (1998).** VFH+: reliable obstacle avoidance for fast mobile robots.
+    *ICRA 1998*, vol. 2, 1572–1577. [DOI](https://doi.org/10.1109/ROBOT.1998.677362)
+    – 23–24: the obstacle avoidance in `vfh.py` (enlarged obstacles, hysteresis and cost from VFH+).
+25. **Nguyen, V., Gächter, S., Martinelli, A., Tomatis, N. & Siegwart, R. (2007).** A comparison of line
+    extraction algorithms using 2D range data for indoor mobile robotics. *Autonomous Robots* 23(2):97–111.
+    [DOI](https://doi.org/10.1007/s10514-007-9034-y)
+    – Split-and-merge, chosen from this comparison for being fast and accurate (`line_extraction.py`).
+
 No paper was found that uses neural fields for following *and* guiding a person; the contribution of this
 project is combining the models above for social navigation.

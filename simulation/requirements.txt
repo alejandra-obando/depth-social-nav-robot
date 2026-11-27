@@ -1,3 +1,6 @@
 mujoco>=4.0
 numpy>=1.26
 matplotlib>=3.8
+pupil-apriltags>=1.0    # conventional controller: the robot's AprilTag detector
+opencv-python-headless>=4.7    # tag36h11 images for the signs
+pytest>=8    # unit tests of software/src

@@ -1,0 +1,4 @@
+# Installed by scripts/install-pi.sh deps in /etc/sudoers.d/social-nav, like sudoers-wallens of
+# the second term: the scripts start and stop the exam service without a password.  Only these commands.
+wallens ALL=(root) NOPASSWD: /usr/bin/systemctl start social-nav, /usr/bin/systemctl stop social-nav, \
+  /usr/bin/systemctl restart social-nav

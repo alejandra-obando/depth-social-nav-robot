@@ -1,0 +1,64 @@
+# Parameters of the conventional controller.  Values marked MEASURE come from the
+# MuJoCo model and must be checked on the real robot.
+#
+# It runs on top of the base robot of the second term (service `wallens`,
+# launch/robot.launch.py of the wallens repository): cmd_vel goes through the LiDAR
+# brake (freno_lidar -> cmd_vel_safe -> wallens_driver) and the pose comes from the
+# EKF (odometry/filtered).  The driver caps v at 0.19 m/s and omega at 1.0 rad/s
+# (wallens_driver.yaml): v_follow above that is cut by the driver.
+
+social_nav_node:
+  ros__parameters:
+    control_rate: 20.0          # Hz
+    camera_rate: 10.0           # images processed per second, per camera
+    tag_size: 0.16              # side of the black square of the printed tags [m]
+    tag_decimate: 2.0           # AprilTag quad_decimate: 2 halves the image (faster on the Pi)
+    back_tag_id: 0              # tag36h11 ID on the person's back (seen by the D415)
+    chest_tag_id: 1             # tag36h11 ID on the person's chest (seen by the C270)
+
+    room_size: 7.0              # [m]
+    start_to_corner: 0.85       # MEASURE: start pose to the start corner [m]
+    follow_distance: 0.9        # robot centre to the back tag [m]
+    v_follow: 0.19              # [m/s] = max_linear of wallens_driver
+    v_guide: 0.18               # [m/s]
+    home_radius: 0.25           # [m]
+    k_omega: 1.5
+    omega_max: 1.0              # [rad/s]
+    lost_time: 1.5              # back tag unseen this long -> LOST [s]
+    wait_lost_time: 2.5         # chest tag unseen this long -> WAIT_PERSON [s]
+    signal_time: 3.0            # duration of the corner signal [s]
+    wait_distance: 1.2          # person farther than this in phase 2 -> WAIT_PERSON [m]
+    resume_distance: 1.0        # ... and closer than this to continue [m]
+    search_after: 2.0           # start sweeping to find the person after this long [s]
+    search_speed: 0.35          # [rad/s]
+    far_corner_distance: 1.8    # far corner recognised when closer than this [m]
+
+    # Relative names, as in the second term: they work with a namespace too.
+    topics:
+      front_image: d415/color/image_raw
+      front_info: d415/color/camera_info
+      rear_image: c270/image_raw           # v4l2_camera with namespace c270 (launch/social_nav.launch.py)
+      rear_info: c270/camera_info
+      depth_image: d415/depth/image_rect_raw
+      depth_info: d415/depth/camera_info
+      scan: scan                           # LD19 node of robot.launch.py
+      odom: odometry/filtered              # EKF (wheels + BNO055 gyro), not the raw /odom
+      cmd_vel: cmd_vel                     # freno_lidar republishes it to cmd_vel_safe for the driver
+      parada: parada                       # std_msgs/Bool: the controller pauses while true
+
+    # Camera poses in the robot frame (x forward, y left, z up from the floor, origin
+    # between the wheels).  yaw: turned left; pitch: tilted up [rad].  MEASURE.
+    front_camera: {x: 0.163, y: 0.0, z: 0.098, yaw: 0.0, pitch: 0.084, fovy_deg: 42.0}
+    rear_camera: {x: -0.147, y: 0.0, z: 0.151, yaw: 3.14159, pitch: 0.82, fovy_deg: 28.6}
+    depth_camera: {x: 0.163, y: 0.0, z: 0.072, yaw: 0.0, pitch: 0.084, fovy_deg: 40.0}
+
+    # LD19 pose, the same as the TF base_link -> base_laser of robot.launch.py: 89 mm in
+    # front of the wheel axle, yaw -90 deg (an object straight ahead is read at 90 deg), scan
+    # counter-clockwise (laser_scan_dir: true).  Must match laser_x / laser_yaw_deg of
+    # wallens_safety.yaml.
+    lidar: {x: 0.089, y: 0.0, yaw: -1.5708, reversed: false}
+
+speaker_node:
+  ros__parameters:
+    device: ""                  # e.g. plughw:CARD=Device for the USB speaker (aplay -L); "" = default
+    repeat_period: 2.0          # LOST / WAIT_PERSON beep every this many seconds

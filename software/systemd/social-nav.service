@@ -1,0 +1,24 @@
+[Unit]
+Description=Social navigation exam: D415, C270, conventional controller and speaker (social_nav.launch.py)
+# Runs on top of the base robot of the second term (wheels, LiDAR brake, IMU, LD19, EKF).
+Requires=wallens.service
+After=wallens.service
+# Same bus as the fruit mission: never both.
+Conflicts=wallens-mision.service
+
+[Service]
+User=wallens
+# No [Install]: it never starts at boot (the robot would start moving).  Start it for a run:
+#   sudo systemctl start social-nav        stop: sudo systemctl stop social-nav
+CPUAffinity=0 1
+ExecStart=/bin/bash -c 'source /opt/ros/jazzy/setup.bash && source /home/wallens/ros_ws/install/setup.bash && exec ros2 launch bringup social_nav.launch.py'
+# The controller is not restarted: after a failure the robot stays still until a person
+# starts the run again from the start pose.
+Restart=no
+# Same ROS network as the base robot: domain 37, discovery only on the Pi + static peers.
+EnvironmentFile=/home/wallens/wallens/config/ros-red.env
+EnvironmentFile=-/home/wallens/.config/wallens/peers.env
+Environment=ROS_LOG_DIR=/run/social-nav-log
+RuntimeDirectory=social-nav-log
+KillSignal=SIGINT
+TimeoutStopSec=10

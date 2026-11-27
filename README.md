@@ -43,7 +43,8 @@ Work stages and deadlines: [`docs/work_plan.md`](docs/work_plan.md).
 - [x] Repository structure
 - [ ] USB-C to USB-A cable for the D415 (buy now)
 - [ ] Camera mounts (D415 front, C270 rear)
-- [ ] Conventional control on the real robot
+- [x] Conventional control in simulation: 30/30 runs, no collisions ([`simulation/README.md`](simulation/README.md#conventional-controller))
+- [ ] Conventional control on the real robot (runs on the second-term base robot: [`software/README.md`](software/README.md#on-the-robot))
 - [ ] Neural architecture in simulation
 - [ ] Neural architecture on the real robot
 - [ ] Full rehearsal of both phases and presentation

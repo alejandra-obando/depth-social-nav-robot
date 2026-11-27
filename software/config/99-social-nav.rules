@@ -1,0 +1,9 @@
+# Fixed device names for the social navigation robot, next to config/99-wallens.rules of
+# the second term (which keeps /dev/lidar and /dev/dynamixel).  Installed by
+# scripts/install-pi.sh deps.
+#
+# Rear C270 (Logitech 046d:0825; index 0 = video stream, 1 = metadata).  The second-term
+# rule names the same camera /dev/cam_frutas: both names point to it, nothing breaks.
+SUBSYSTEM=="video4linux", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="0825", ATTR{index}=="0", SYMLINK+="cam_rear", GROUP="video", MODE="0660"
+# The D415 is opened by librealsense by serial number, it needs no name.  Its udev rules
+# come with the ros-jazzy-librealsense2 package.

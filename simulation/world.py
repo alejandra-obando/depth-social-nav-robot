@@ -8,6 +8,10 @@ Geom groups (used by the simulated sensors' rays):
     0  robot meshes, floor, signal light   (ignored by every sensor)
     1  walls, obstacles, people           (seen by the LiDAR, the depth camera and the cameras)
     2  signs worn by the guide person     (seen only by the sign cameras)
+
+With ``build(layout, tags=True)`` the signs carry real AprilTag tag36h11 images
+(ID 0 on the back, ID 1 on the chest), so the rendered camera images can be
+given to the same detector the robot runs.
 """
 
 from dataclasses import dataclass, field
@@ -25,6 +29,8 @@ START_YAW = np.pi / 4                 # facing the opposite corner
 GOAL = np.array([6.7, 6.7])           # where the guide person stops in phase 1
 PERSON_RADIUS = 0.18
 SIGN_HALF = 0.10                      # signs are 20 cm x 20 cm
+TAG_IDS = {"back": 0, "front": 1}     # tag36h11 IDs printed on the signs
+TAG_SIZE = 0.16                       # black square of the tag; the rest of the sign is white margin
 
 
 @dataclass
@@ -101,7 +107,28 @@ def _add_box(parent, name, pos, half, rgba, yaw=0.0, group=1, **kw):
                            size=list(half), rgba=list(rgba), group=group, **kw)
 
 
-def _add_person(spec, name, rgba, with_signs=False, sign_heights=(0.4, 1.1)):
+def tag_image(tag_id, cell_px=20):
+    """tag36h11 image with a one-cell white margin: 10 x 10 cells, the black square is 8 cells.
+
+    OpenCV's DICT_APRILTAG_36h11 uses the same codes as the AprilTag library.
+    """
+    import cv2
+    d = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11)
+    img = cv2.aruco.generateImageMarker(d, tag_id, 8 * cell_px)
+    img = cv2.copyMakeBorder(img, cell_px, cell_px, cell_px, cell_px, cv2.BORDER_CONSTANT, value=255)
+    return np.repeat(img[:, :, None], 3, axis=2)
+
+
+def _add_tag_material(spec, side):
+    img = tag_image(TAG_IDS[side])
+    tex = spec.add_texture(name=f"tag_{side}", type=mujoco.mjtTexture.mjTEXTURE_2D,
+                           width=img.shape[1], height=img.shape[0], nchannel=3)
+    tex.data = img.tobytes()
+    spec.add_material(name=f"tag_{side}", textures=["", f"tag_{side}"])
+    return f"tag_{side}"
+
+
+def _add_person(spec, name, rgba, with_signs=False, sign_heights=(0.4, 1.1), tags=False):
     body = spec.worldbody.add_body(name=name, pos=[-5, -5, 0], mocap=True)
     body.add_geom(name=f"{name}_body", type=mujoco.mjtGeom.mjGEOM_CAPSULE,
                   fromto=[0, 0, PERSON_RADIUS, 0, 0, 1.55], size=[PERSON_RADIUS, 0, 0],
@@ -112,14 +139,19 @@ def _add_person(spec, name, rgba, with_signs=False, sign_heights=(0.4, 1.1)):
         back_h, front_h = sign_heights
         off = PERSON_RADIUS + 0.01
         # Person faces local +x: the front sign is at +x, the back sign at -x.
+        # A 2-D texture reads correctly on the box's +x face and mirrored on its -x face,
+        # so the back sign is turned by 180 degrees to show its +x face outwards.
+        rgba_sign = [1, 1, 1, 1] if tags else [0.05, 0.05, 0.05, 1]
+        kw_f = dict(material=_add_tag_material(spec, "front")) if tags else {}
+        kw_b = dict(material=_add_tag_material(spec, "back")) if tags else {}
         _add_box(body, f"{name}_sign_front", [off, 0, front_h], [0.005, SIGN_HALF, SIGN_HALF],
-                 [0.05, 0.05, 0.05, 1], group=2, contype=0, conaffinity=0)
+                 rgba_sign, group=2, contype=0, conaffinity=0, **kw_f)
         _add_box(body, f"{name}_sign_back", [-off, 0, back_h], [0.005, SIGN_HALF, SIGN_HALF],
-                 [0.05, 0.05, 0.05, 1], group=2, contype=0, conaffinity=0)
+                 rgba_sign, yaw=np.pi, group=2, contype=0, conaffinity=0, **kw_b)
     return body
 
 
-def build(layout: Layout):
+def build(layout: Layout, tags=False):
     spec = mujoco.MjSpec.from_file(str(ROBOT_XML))
     wb = spec.worldbody
     wall_rgba = [0.75, 0.75, 0.7, 1]
@@ -137,7 +169,8 @@ def build(layout: Layout):
         mb = wb.add_body(name="moving_briefcase", pos=[x0, y0, 0.175], mocap=True)
         _add_box(mb, "moving_briefcase_geom", [0, 0, 0], [0.225, 0.075, 0.175], [0.35, 0.1, 0.1, 1])
 
-    _add_person(spec, "guide", [0.2, 0.45, 0.85, 1], with_signs=True, sign_heights=layout.sign_heights)
+    _add_person(spec, "guide", [0.2, 0.45, 0.85, 1], with_signs=True, sign_heights=layout.sign_heights,
+                tags=tags)
     for i in range(len(layout.walkers)):
         _add_person(spec, f"walker_{i}", [0.6, 0.6, 0.6, 1])
 
