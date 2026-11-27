@@ -1,6 +1,7 @@
 # Simulation
 
-Simulated 7 m × 7 m room with obstacles and people (MuJoCo / Isaac Sim).
+Simulated 7 m × 7 m room with obstacles and people (MuJoCo), used to test the neural architecture
+in [`../neural`](../neural) before it goes on the real robot.
 
 ## Robot model with both cameras
 
@@ -15,3 +16,61 @@ python -m mujoco.viewer --mjcf="simulation/xml 2 cameras set.xml"
 - `]` / `[` switch to the camera views (`d415_prof`, `d415_color`, `c270`).
 - Key `3` shows the 1.5 m view frustums.
 - Wheel velocity motors `motor_izq`, `motor_der` (rad/s); forward = `motor_izq` negative, `motor_der` positive.
+- The two caster wheels (`part_1__6`, front and rear) have frictionless contacts (`condim="1"`): with the
+  default mesh friction the chassis dragged and the robot barely moved. Measured now: 0.185 m/s for
+  5 rad/s at the wheels (wheel radius 37.5 mm), effective track 0.29 m.
+
+## Running the exam in simulation
+
+From the repository root:
+
+```bash
+python -m venv .venv && .venv/bin/pip install -r simulation/requirements.txt
+.venv/bin/python -m simulation.run_exam --scenario full --seed 0          # both phases, plot + JSON in simulation/results/
+.venv/bin/python -m simulation.run_exam --scenario full --view            # watch it in the MuJoCo viewer
+.venv/bin/python -m simulation.batch --seeds 8                            # many seeds + ablations, Markdown table
+```
+
+Scenarios: `empty`, `static` (9 stacks of 10 cm + 2 briefcases), `moving` (+ a briefcase pushed during the
+run), `people` (static + 2 people walking across the diagonal), `full` (everything). Each seed changes the
+stack layout, and the noise of the sensors. Ablations: `--no-memory`, `--no-motion`.
+
+![Example run](example_run.png)
+
+## What is simulated
+
+| File | Contents |
+|------|----------|
+| `world.py` | Builds the room around the unchanged robot XML with MjSpec: walls, tablet stacks, briefcases, people with their signs, a signal light on the robot. |
+| `sensors.py` | LD19 LiDAR at ~16 cm (360 rays, 10 Hz, does **not** see the 10 cm stacks), D415 depth (ray grid in its field of view, sees the stacks), sign cameras (D415 colour at the front, C270 at the rear), odometry (wheel encoders + IMU yaw with drift). |
+| `people.py` | The guide person (walks ahead and stops if the robot falls behind, then walks behind the robot in phase 2, with a pause to test waiting) and walkers driven by a social force model (Helbing & Molnár 1995). |
+| `run_exam.py` | Control loop at 20 Hz: sensors → `SocialNavNet` → wheel speeds. Measures the rubric: robot–person distance, collisions (serious / during a manoeuvre), link losses, corner, return to start, time. |
+| `batch.py` | Runs many seeds and the ablations, prints the results table. |
+
+The sign "detector" is geometric: the sign counts as seen if its centre is inside the camera's field of view,
+within range, facing the camera and not occluded. The real QR/pattern detection must be tested on the robot.
+
+## Results (8 seeds, `full` scenario)
+
+| Variant | Both phases done | Link losses (phase 1) | Serious faults | Minor faults | Max distance [m] | Time > 1.5 m [s] | Mean time [s] |
+|---|---|---|---|---|---|---|---|
+| full architecture | 7/8 | 0 | 38 | 8 | 1.41 | 0.0 | 169 |
+| without field memory | 2/8 | 44 | 0 | 0 | 1.36 | 0.0 | 334 |
+| without Reichardt detector | 8/8 | 0 | 0 | 0 | 1.38 | 0.0 | 128 |
+
+- The robot never went beyond 1.5 m from the person in any run.
+- The 38 serious faults of the full architecture all come from **one** seed (6): after brushing a stack
+  several times the odometry drifts and the robot ends up pushing against the start corner walls.
+- **The field memory is essential**: without it the link is lost 44 times and phase 1 fails in 6 of 8 runs.
+- **The Reichardt detector does not help in these scenarios** (the simulated walkers already avoid the robot).
+  It is still on by default; see the open points in [`../neural/README.md`](../neural/README.md).
+
+## Findings that matter for the real robot
+
+- **Height of the signs.** The D415 is ~10 cm above the floor and looks almost horizontally (~5° up), so with
+  its 42° vertical field of view it only sees up to ~0.5 m high at 1 m. In simulation the **back sign is at
+  0.30 m** (visible from ~0.8 m to beyond 2.5 m). Alternatives: tilt the D415 upwards ~15–20°, or put the
+  back sign low (calf/knee height).
+- The C270 looks ~47° upwards from 15 cm: a **front sign at ~1.10 m** is seen between ~0.9 m and 1.8 m.
+- Collisions make the wheels slip and the odometry drift; in phase 2 the start corner is confirmed with the
+  LiDAR (both walls close) instead of trusting only the odometry.
