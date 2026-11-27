@@ -1,0 +1,13 @@
+# Footprint of the robot WITHOUT the gripper, for the second-term LiDAR brake
+# (wallens_safety.yaml, parameter `footprint`; nav2.yaml must hold the same text, its test
+# compares them).  Same format: [[x, y], ...] in base_link (middle of the wheel axle,
+# x forward, y left), metres, counter-clockwise from the front.
+#
+# Computed from simulation/xml 2 cameras set.xml: convex hull of every mesh of the robot
+# seen from above (chassis 250 mm, wheels at +-0.148 m, D415 mount in front to 0.158 m,
+# C270 behind to -0.160 m), simplified to 10 vertices and grown 5 mm so it still
+# contains every point.  The second-term footprint (chassis 296 mm + gripper to -0.285 m)
+# is bigger behind: with it the brake stops for things that are not there.
+freno_lidar:
+  ros__parameters:
+    footprint: "[[0.163, 0.049], [0.038, 0.153], [-0.036, 0.153], [-0.127, 0.081], [-0.161, 0.037], [-0.164, -0.024], [-0.127, -0.081], [-0.037, -0.153], [0.038, -0.153], [0.163, -0.049]]"

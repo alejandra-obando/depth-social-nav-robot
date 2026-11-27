@@ -64,9 +64,11 @@ sudo ~/social_nav/scripts/install-pi.sh deps     # realsense2_camera, v4l2_camer
 ~/social_nav/scripts/install-pi.sh               # links the 4 packages into ~/ros_ws/src and builds them
 ```
 
-If `wallens_safety`'s footprint still includes the gripper and it was taken off, update `footprint` in
-`wallens_safety.yaml` (and `nav2.yaml`, its test compares them), or the brake will stop for things that are not
-there.
+**The gripper is gone**, so the brake's footprint must change: copy the `footprint` of
+[`config/footprint_no_gripper.yaml`](config/footprint_no_gripper.yaml) (computed from the MuJoCo model) into
+`ros/wallens_safety/config/wallens_safety.yaml` **and** `nav2.yaml` of the wallens repository (its test compares
+them), deploy it with that repository's `scripts/desplegar.sh`, and restart `wallens`. With the old footprint
+(gripper to −0.285 m) the brake stops for things that are not there.
 
 ### 2. Deploy changes (PC)
 
