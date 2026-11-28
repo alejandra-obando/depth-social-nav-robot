@@ -100,6 +100,8 @@ class SocialNavNode(Node):
         params = Params(**{n: self.get_parameter(n).value for n in vars(P)})
         self.declare_parameter("control_rate", 20.0)
         self.declare_parameter("camera_rate", 10.0)
+        self.declare_parameter("depth_rate", 6.0)        # plan: 5-8 Hz
+        self.declare_parameter("use_depth", True)        # false if the Pi cannot keep up (LiDAR only)
         self.declare_parameter("tag_size", 0.16)
         self.declare_parameter("tag_decimate", 2.0)
         # LD19 pose on the second-term robot (robot.launch.py, TF base_link -> base_laser).
@@ -170,17 +172,21 @@ class SocialNavNode(Node):
 
     def _due(self, cam):
         now = time.monotonic()
-        if now - self.last_image[cam] < 1.0 / self.get_parameter("camera_rate").value:
+        rate = self.get_parameter("depth_rate" if cam == "depth" else "camera_rate").value
+        if now - self.last_image[cam] < 1.0 / rate:
             return False
         self.last_image[cam] = now
         return True
 
     def on_image(self, cam, msg):
+        # One camera per phase (CPU): the front one in phase 1, the rear one from TURN_AROUND on.
+        if cam != ("front" if self.nav.state.phase == 1 else "rear"):
+            return
         if cam in self.detectors and self._due(cam):
             self.tags += self.detectors[cam].detect(image_to_gray(msg))
 
     def on_depth(self, msg):
-        if self.depth is not None and self._due("depth"):
+        if self.depth is not None and self.get_parameter("use_depth").value and self._due("depth"):
             self.depth_pts = self.depth.points(depth_to_metres(msg))
 
     def on_scan(self, msg: LaserScan):

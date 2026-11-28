@@ -102,25 +102,37 @@ aplay -L                                                       # name of the USB
 
 ### 5. Run
 
-Place the robot at the start corner facing the opposite corner (the first odometry pose is the start, with the
-far corner straight ahead). On the Pi, or from the PC with `ssh`:
+**Start command (from the PC).** Place the robot at the start corner facing the opposite corner, then:
 
 ```bash
-sudo systemctl start social-nav        # cameras + controller + speaker; never starts at boot
-journalctl -u social-nav -f
-ros2 topic echo /social_nav/state      # from any shell with ros-env.sh
-sudo systemctl stop social-nav         # zero cmd_vel and exit
+software/scripts/start.sh      # ssh to the Pi: (re)starts social-nav; the start pose is stored at that moment
+software/scripts/stop.sh       # stops it (zero cmd_vel); the base robot keeps running
 ```
 
-Or by hand: `ros2 launch bringup social_nav.launch.py` (Ctrl+C stops the robot). `base:=true` also starts
-`robot.launch.py`, only with the `wallens` service stopped (two drivers on one bus).
+`WALLENS_IP=<ip>` if `wallens.local` does not resolve. The robot does not move until it sees the back tag; then
+it says "Sígueme". Nothing of the run depends on the PC or the network after that: everything runs on the Pi.
+The same on the Pi itself: `sudo systemctl restart social-nav`, `journalctl -u social-nav -f`,
+`ros2 topic echo /social_nav/state`. By hand: `ros2 launch bringup social_nav.launch.py` (Ctrl+C stops the
+robot); `base:=true` also starts `robot.launch.py`, only with the `wallens` service stopped.
 
-| Sound | When |
-|-------|------|
-| two low beeps, every 2 s | LOST: the robot no longer sees the person (phase 1) |
-| one beep, every 2 s | WAIT_PERSON: the person fell behind or is not seen (phase 2) |
-| three rising notes | far corner recognised, end of phase 1 |
-| long high tone | start corner reached, end of phase 2 |
+**Voice.** `install-pi.sh` makes the phrases with espeak-ng in `~/.config/social_nav/voice/`
+(`ros2 run bringup make_voice` makes them again). To use your own recordings, replace a file with a WAV of the
+same name (e.g. `arecord -f S16_LE -r 22050 -c 1 lost.wav`). The same phrase is not repeated within 6 s
+(`min_interval`). A missing file plays a beep.
+
+| File | Phrase | When |
+|------|--------|------|
+| `start.wav` | "Sígueme" | the back tag is seen for the first time |
+| `obstacle.wav` | "Ten cuidado con los obstáculos" | VFH slows the robot down near an obstacle or a person |
+| `lost.wav` | "No te veo, espérame" | LOST (back tag unseen 0.5 s: the robot stops); every 6 s |
+| `found.wav` | "Te encontré" | LOST → FOLLOW, WAIT_PERSON → GUIDE |
+| `corner.wav` | "Fase uno completa. Ahora te guío de regreso" | far corner recognised: end-of-phase signal |
+| `guide.wav` | "Sígueme" | phase 2 starts (chest tag seen, robot facing the start) |
+| `wait.wav` | "Te espero" | WAIT_PERSON (person > 1.2 m or unseen 2.5 s); every 6 s |
+| `done.wav` | "Llegamos. Fin del recorrido" | start corner reached |
+
+Not done yet (kept simple on purpose): the LED for the end-of-phase signal, and correcting the odometry with the
+walls on the way back (in simulation the robot ends within 0.31 m of the start without it).
 
 The neural models in `../neural` can later replace pieces of this controller one at a time; the conventional
 version stays as the fallback.

@@ -11,7 +11,7 @@ PACKAGES="perception corners navigation bringup"
 if [ "${1:-}" = deps ]; then
   [ "$(id -u)" = 0 ] || { echo "Run with sudo" >&2; exit 1; }
   apt-get update
-  apt-get install -y ros-jazzy-realsense2-camera ros-jazzy-v4l2-camera alsa-utils python3-pip python3-numpy
+  apt-get install -y ros-jazzy-realsense2-camera ros-jazzy-v4l2-camera alsa-utils espeak-ng python3-pip python3-numpy
   # AprilTag 3 (has aarch64 wheels).  Ubuntu 24.04 protects the system Python: --break-system-packages
   # only adds this package, nothing is replaced.
   sudo -u "${SUDO_USER:-wallens}" pip install --user --break-system-packages pupil-apriltags
@@ -36,3 +36,9 @@ set +u; source /opt/ros/jazzy/setup.bash; set -u
 cd "$WS"
 nice -n 10 colcon build --packages-select $PACKAGES
 echo "OK: $PACKAGES built in $WS"
+# Spoken phrases (espeak-ng), only if there are none yet: recordings of your own are not overwritten.
+VOICE=$HOME/.config/social_nav/voice
+if [ ! -d "$VOICE" ]; then
+  set +u; source "$WS/install/setup.bash"; set -u
+  ros2 run bringup make_voice "$VOICE"
+fi

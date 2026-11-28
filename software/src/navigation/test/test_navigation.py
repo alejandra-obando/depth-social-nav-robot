@@ -82,23 +82,23 @@ def test_state_machine_whole_exam():
     assert fsm.state == State.FOLLOW
     assert _run(fsm, Inputs(**{**seen, "person_age": 2.0}), 0.1) == ["lost"]
     assert fsm.state == State.LOST
-    _run(fsm, Inputs(**seen), 0.1)
+    assert _run(fsm, Inputs(**seen), 0.1) == ["found"]
     assert fsm.state == State.FOLLOW
     assert _run(fsm, Inputs(**{**seen, "far_corner": True}), 0.1) == ["corner"]
     _run(fsm, Inputs(**seen), 3.1)
     assert fsm.state == State.TURN_AROUND
-    _run(fsm, Inputs(**{**seen, "facing_home": True}), 0.1)
+    assert _run(fsm, Inputs(**{**seen, "facing_home": True}), 0.1) == ["guide"]
     assert fsm.state == State.GUIDE
     assert _run(fsm, Inputs(**{**seen, "person_distance": 1.4}), 0.1) == ["wait"]
     assert fsm.state == State.WAIT_PERSON
-    _run(fsm, Inputs(**seen), 0.1)
+    assert _run(fsm, Inputs(**seen), 0.1) == ["found"]
     assert fsm.state == State.GUIDE
     assert _run(fsm, Inputs(**{**seen, "home_reached": True}), 0.1) == ["done"]
     assert fsm.state == State.DONE
 
 
 def test_no_lost_alert_at_start_up():
-    fsm = StateMachine(lost_time=1.5)
+    fsm = StateMachine(lost_time=0.5)
     unseen = Inputs(person_age=np.inf, person_distance=np.inf, far_corner=False, facing_home=False,
                     home_reached=False)
-    assert _run(fsm, unseen, 1.4) == []
+    assert _run(fsm, unseen, 0.45) == []

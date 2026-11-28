@@ -56,7 +56,7 @@ def generate_launch_description():
              parameters=[{"enable_color": True, "enable_depth": True, "enable_infra1": False,
                           "enable_infra2": False, "enable_gyro": False, "enable_accel": False,
                           "rgb_camera.color_profile": "640x480x15",
-                          "depth_module.depth_profile": "480x270x15",
+                          "depth_module.depth_profile": "424x240x6",
                           "align_depth.enable": False, "pointcloud.enable": False}],
              condition=cameras, **alive),
         # C270 (rear): chest tag.  v4l2_camera, as in docs/camaras.md of the second term.

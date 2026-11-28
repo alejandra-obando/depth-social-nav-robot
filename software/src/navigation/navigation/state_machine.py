@@ -13,6 +13,8 @@ logged conditions, which makes a run easy to explain and debug.
 from dataclasses import dataclass
 from enum import Enum
 
+import numpy as np
+
 
 class State(str, Enum):
     FOLLOW = "FOLLOW"
@@ -29,7 +31,10 @@ class State(str, Enum):
 
 
 # Sound the speaker plays when a state is entered (None: silent).
+# Alert (spoken phrase) when a state is entered.  FOUND / GUIDE depend on where it came from.
 ALERTS = {State.LOST: "lost", State.SIGNAL: "corner", State.WAIT_PERSON: "wait", State.DONE: "done"}
+TRANSITION_ALERTS = {(State.LOST, State.FOLLOW): "found", (State.TURN_AROUND, State.GUIDE): "guide",
+                     (State.WAIT_PERSON, State.GUIDE): "found"}
 
 
 @dataclass
@@ -42,7 +47,7 @@ class Inputs:
 
 
 class StateMachine:
-    def __init__(self, lost_time=1.5, found_time=0.2, signal_time=3.0, wait_lost_time=2.5,
+    def __init__(self, lost_time=0.5, found_time=0.2, signal_time=3.0, wait_lost_time=2.5,
                  wait_distance=1.2, resume_distance=1.0):
         self.lost_time = lost_time
         self.found_time = found_time
@@ -57,9 +62,10 @@ class StateMachine:
 
     def _go(self, new, reason):
         self.history.append((round(self.t, 2), self.state.value, new.value, reason))
+        alert = TRANSITION_ALERTS.get((self.state, new), ALERTS.get(new))
         self.state = new
         self.time_in_state = 0.0
-        return ALERTS.get(new)
+        return alert
 
     def step(self, dt, i: Inputs):
         """Advance by dt.  Returns the alert to play if a state was just entered, else None."""
@@ -69,8 +75,8 @@ class StateMachine:
         if s == State.FOLLOW:
             if i.far_corner:
                 return self._go(State.SIGNAL, "far corner confirmed")
-            # At start-up the person may still be getting in front of the camera.
-            if i.person_age > self.lost_time and self.t > self.lost_time:
+            # Only once the person was seen: at start-up they may still be getting in front of the camera.
+            if np.isfinite(i.person_age) and i.person_age > self.lost_time:
                 return self._go(State.LOST, f"tag unseen for {min(i.person_age, self.t):.1f} s")
         elif s == State.LOST:
             if i.person_age < self.found_time:

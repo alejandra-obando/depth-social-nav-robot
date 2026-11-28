@@ -10,7 +10,9 @@
 social_nav_node:
   ros__parameters:
     control_rate: 20.0          # Hz
-    camera_rate: 10.0           # images processed per second, per camera
+    camera_rate: 10.0           # images processed per second (only the camera of the current phase)
+    depth_rate: 6.0             # depth images processed per second (plan: 5-8 Hz)
+    use_depth: true             # false: LiDAR only, if the Pi cannot keep up
     tag_size: 0.16              # side of the black square of the printed tags [m]
     tag_decimate: 2.0           # AprilTag quad_decimate: 2 halves the image (faster on the Pi)
     back_tag_id: 0              # tag36h11 ID on the person's back (seen by the D415)
@@ -24,14 +26,15 @@ social_nav_node:
     home_radius: 0.25           # [m]
     k_omega: 1.5
     omega_max: 1.0              # [rad/s]
-    lost_time: 1.5              # back tag unseen this long -> LOST [s]
+    lost_time: 0.5              # back tag unseen this long -> LOST: stop at once [s]
     wait_lost_time: 2.5         # chest tag unseen this long -> WAIT_PERSON [s]
     signal_time: 3.0            # duration of the corner signal [s]
     wait_distance: 1.2          # person farther than this in phase 2 -> WAIT_PERSON [m]
     resume_distance: 1.0        # ... and closer than this to continue [m]
-    search_after: 2.0           # start sweeping to find the person after this long [s]
+    search_after: 5.0           # turn towards the last bearing this long, then sweep in place [s]
     search_speed: 0.35          # [rad/s]
     far_corner_distance: 1.8    # far corner recognised when closer than this [m]
+    obstacle_speed: 0.5         # "Ten cuidado con los obstáculos" when VFH slows below this factor
 
     # Relative names, as in the second term: they work with a namespace too.
     topics:
@@ -61,4 +64,6 @@ social_nav_node:
 speaker_node:
   ros__parameters:
     device: ""                  # e.g. plughw:CARD=Device for the USB speaker (aplay -L); "" = default
-    repeat_period: 2.0          # LOST / WAIT_PERSON beep every this many seconds
+    voice_dir: ~/.config/social_nav/voice   # <alert>.wav phrases (ros2 run bringup make_voice); missing -> beep
+    min_interval: 6.0           # the same phrase is not repeated before this [s] (plan: 5-8 s)
+    repeat_period: 6.0          # LOST / WAIT_PERSON phrase every this many seconds

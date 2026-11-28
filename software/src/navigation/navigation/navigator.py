@@ -66,16 +66,19 @@ class Params:
     k_omega: float = 1.5
     omega_max: float = 1.0
     # State machine.
-    lost_time: float = 1.5
+    lost_time: float = 0.5           # tag unseen this long -> LOST: the robot stops at once [s]
     wait_lost_time: float = 2.5
     signal_time: float = 3.0
     wait_distance: float = 1.2
     resume_distance: float = 1.0
-    # Search when the person is lost: sweep after this many seconds, at this speed [rad/s].
-    search_after: float = 2.0
+    # Search when the person is lost: turn towards the last bearing for this many seconds,
+    # then sweep in place at search_speed [rad/s] until the tag is seen again.
+    search_after: float = 5.0
     search_speed: float = 0.35
     # Far corner: closer than this to the robot [m].
     far_corner_distance: float = 1.8
+    # "Careful with the obstacles": said when VFH slows the robot below this speed factor.
+    obstacle_speed: float = 0.5
 
 
 class Navigator:
@@ -93,6 +96,8 @@ class Navigator:
         self.follow = FollowController(d_ref=p.follow_distance, v_max=p.v_follow)
         self.goto = GoToGoal(v_max=p.v_guide)
         self.vfh = VFH()
+        self.started = False          # "start" said once, when the back tag is first seen
+        self.near_obstacle = False
 
     @property
     def state(self):
@@ -168,6 +173,14 @@ class Navigator:
             # Stop and point the rear camera at the person.
             omega = self._search(bearing, camera_angle=np.pi)
         omega = float(np.clip(omega, -p.omega_max, p.omega_max))
+
+        # Spoken alerts that are not state changes (the speaker limits how often they repeat).
+        if not self.started and state == State.FOLLOW and bearing is not None:
+            self.started, alert = True, alert or "start"
+        near = steer is not None and speed < p.obstacle_speed and v > 0
+        if near and not self.near_obstacle:
+            alert = alert or "obstacle"
+        self.near_obstacle = near
 
         return Command(v=float(v), omega=omega, state=state.value, phase=state.phase, alert=alert,
                        debug=dict(person_distance=float(dist), person_bearing=bearing,
