@@ -22,6 +22,7 @@ setup(
             "social_nav_node = bringup.social_nav_node:main",
             "speaker_node = bringup.speaker_node:main",
             "make_voice = bringup.sounds:main",
+            "sensor_check = bringup.sensor_check:main",
         ],
     },
 )

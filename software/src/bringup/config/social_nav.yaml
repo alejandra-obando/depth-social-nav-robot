@@ -52,7 +52,9 @@ social_nav_node:
     # Camera poses in the robot frame (x forward, y left, z up from the floor, origin
     # between the wheels).  yaw: turned left; pitch: tilted up [rad].  MEASURE.
     front_camera: {x: 0.163, y: 0.0, z: 0.098, yaw: 0.0, pitch: 0.084, fovy_deg: 42.0}
-    rear_camera: {x: -0.147, y: 0.0, z: 0.151, yaw: 3.14159, pitch: 0.82, fovy_deg: 28.6}
+    # C270 without calibration: nominal 55 deg diagonal -> 34.7 deg vertical at 640x480. If the tape
+    # distance does not match, tune it (docs/robot_test_plan.md, step 6).
+    rear_camera: {x: -0.147, y: 0.0, z: 0.151, yaw: 3.14159, pitch: 0.82, fovy_deg: 34.7}
     depth_camera: {x: 0.163, y: 0.0, z: 0.072, yaw: 0.0, pitch: 0.084, fovy_deg: 40.0}
 
     # LD19 pose, the same as the TF base_link -> base_laser of robot.launch.py: 89 mm in

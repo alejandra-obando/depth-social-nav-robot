@@ -78,6 +78,11 @@ software/scripts/deploy.sh          # tests -> rsync -> colcon build -> restarts
 
 ### 3. Check each part on its own (Pi, `source ~/wallens/scripts/ros-env.sh`)
 
+The full step-by-step plan, with pass criteria: [`../docs/robot_test_plan.md`](../docs/robot_test_plan.md). Tools for it:
+`ros2 run bringup sensor_check` (`check:=front|rear|depth|lidar`: prints what the controller gets from that sensor),
+`social_nav.launch.py controller:=false` (only the camera drivers) and `dry_run:=true` (everything, but the velocity
+goes to `cmd_vel_dry`, so the wheels never move).
+
 ```bash
 systemctl is-active wallens                                   # base robot
 ros2 topic hz /scan; ros2 topic hz /odometry/filtered         # >= 5 and >= 20 Hz (the wallens start-up check too)

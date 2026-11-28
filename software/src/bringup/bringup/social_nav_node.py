@@ -51,7 +51,7 @@ from .frames import StartFrame, scan_points
 # middle of the wheel axle (base_link), z from the FLOOR (base_link is 36.25 mm above it).
 # Taken from the MuJoCo model: measure them on the real robot and set them in the YAML.
 CAMERAS = {"front_camera": (0.163, 0.0, 0.098, 0.0, 0.084, 42.0),
-           "rear_camera": (-0.147, 0.0, 0.151, np.pi, 0.82, 28.6),
+           "rear_camera": (-0.147, 0.0, 0.151, np.pi, 0.82, 34.7),
            "depth_camera": (0.163, 0.0, 0.072, 0.0, 0.084, 40.0)}
 TOPICS = {"front_image": "d415/color/image_raw", "front_info": "d415/color/camera_info",
           "rear_image": "c270/image_raw", "rear_info": "c270/camera_info",

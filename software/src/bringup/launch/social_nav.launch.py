@@ -3,6 +3,9 @@
     ros2 launch bringup social_nav.launch.py                     # cameras + controller + speaker
     ros2 launch bringup social_nav.launch.py cameras:=false      # camera drivers started by hand
     ros2 launch bringup social_nav.launch.py base:=true          # also the base robot (service wallens stopped)
+    ros2 launch bringup social_nav.launch.py controller:=false   # only the camera drivers (to test them)
+    ros2 launch bringup social_nav.launch.py dry_run:=true       # everything, but cmd_vel goes to cmd_vel_dry:
+                                                                 # the wheels never move
     ros2 launch bringup social_nav.launch.py params:=/path/to/my_params.yaml
 
 The base robot (wheels driver, LiDAR brake, IMU, LD19, EKF, battery) is the launch file
@@ -21,7 +24,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import EnvironmentVariable, LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 
 
@@ -29,6 +32,7 @@ def generate_launch_description():
     share = Path(get_package_share_directory("bringup"))
     params = LaunchConfiguration("params")
     cameras = IfCondition(LaunchConfiguration("cameras"))
+    controller = IfCondition(LaunchConfiguration("controller"))
     # Nodes that can fail without danger are restarted, as in robot.launch.py.
     alive = {"output": "screen", "respawn": True, "respawn_delay": 2.0}
     return LaunchDescription([
@@ -41,6 +45,10 @@ def generate_launch_description():
         DeclareLaunchArgument("wallens_dir",
                               default_value=PathJoinSubstitution([EnvironmentVariable("HOME"), "wallens"]),
                               description="checkout of the wallens repository on the Pi"),
+        DeclareLaunchArgument("controller", default_value="true", choices=["true", "false"],
+                              description="start social_nav_node and speaker_node"),
+        DeclareLaunchArgument("dry_run", default_value="false", choices=["true", "false"],
+                              description="publish the velocity on cmd_vel_dry instead of cmd_vel (wheels never move)"),
         DeclareLaunchArgument("rear_device", default_value="/dev/cam_rear",
                               description="C270 device (udev rule in software/config/99-social-nav.rules)"),
 
@@ -70,6 +78,9 @@ def generate_launch_description():
         # The controller is not respawned: if it dies the robot must stay still (the driver
         # stops 0.25 s after the last cmd_vel_safe) and the run is started again by hand.
         Node(package="bringup", executable="social_nav_node", name="social_nav_node",
-             parameters=[params], output="screen"),
-        Node(package="bringup", executable="speaker_node", name="speaker_node", parameters=[params], **alive),
+             parameters=[params, {"topics.cmd_vel": PythonExpression(
+                 ["'cmd_vel_dry' if '", LaunchConfiguration("dry_run"), "' == 'true' else 'cmd_vel'"])}],
+             output="screen", condition=controller),
+        Node(package="bringup", executable="speaker_node", name="speaker_node", parameters=[params],
+             condition=controller, **alive),
     ])
