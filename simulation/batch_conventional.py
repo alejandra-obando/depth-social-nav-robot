@@ -40,15 +40,16 @@ def main():
     with ProcessPoolExecutor(a.workers, mp_context=mp.get_context("spawn")) as pool:
         out = list(pool.map(_one, jobs))
     lines = [f"Conventional controller, {a.seeds} seeds per scenario.", "",
-             "| Scenario | Both phases done | Link losses (phase 1) | Waits (phase 2) | Serious faults | "
+             "| Scenario | Both phases done | Link losses (phase 1) | Longest loss [s] | Waits (phase 2) | Serious faults | "
              "Minor faults | Max distance [m] | Time > 1.5 m [s] | Start error [m] | Mean time [s] |",
-             "|---|---|---|---|---|---|---|---|---|---|"]
+             "|---|---|---|---|---|---|---|---|---|---|---|"]
     for sc in scenarios:
         rs = [s for ss, s in out if ss == sc]
         done = sum(s["phase1_completed"] and s["phase2_completed"] for s in rs)
         errs = [s["start_corner_error_m"] for s in rs if s["start_corner_error_m"] is not None]
         lines.append(
             f"| {sc} | {done}/{len(rs)} | {sum(s['link_losses_phase1'] for s in rs)} | "
+            f"{max(s['longest_loss_phase1_s'] for s in rs):.1f} | "
             f"{sum(s['wait_episodes'] for s in rs)} | {sum(s['serious_faults'] for s in rs)} | "
             f"{sum(s['minor_faults'] for s in rs)} | {max(s['max_distance_m'] for s in rs):.2f} | "
             f"{sum(s['time_over_1_5m_s'] for s in rs):.1f} | "

@@ -141,6 +141,10 @@ class Navigator:
         state = self.fsm.state
         if alert == "corner":
             self.follow.reset()
+        if state in (State.LOST, State.WAIT_PERSON) and self.tracker.initialised:
+            # The person was just asked to wait: assume they stopped where they were last seen,
+            # instead of extrapolating their last velocity (which would point the camera off them).
+            self.tracker.x[2:] = 0.0
         if state == State.TURN_AROUND and self.fsm.time_in_state == 0.0:
             # From now on the person is tracked from the chest tag: start a fresh track.
             self.tracker = PersonTracker()
@@ -200,7 +204,9 @@ class Navigator:
             return self.p.search_speed
         err = wrap(bearing - camera_angle)
         if self.tracker.age < self.p.search_after:
-            return float(np.clip(0.8 * err, -0.5, 0.5)) if abs(err) > 0.35 else 0.0
+            # Centre the estimate in the camera (a 20 deg dead band left the person at the edge
+            # of the D415's 65 deg view, unseen, for the whole 5 s).
+            return float(np.clip(0.8 * err, -0.5, 0.5)) if abs(err) > 0.1 else 0.0
         return float(np.sign(err) or 1.0) * self.p.search_speed
 
     def _turn(self, angle, limit=None):

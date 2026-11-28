@@ -43,26 +43,43 @@ node**, and gives it what the real sensors would:
 
 Rendering needs OpenGL; without a display the scripts use `MUJOCO_GL=egl`. A run takes about one minute.
 
+While it runs, the terminal prints what the speaker would say (with the speaker's 6 s rule) and when the LiDAR
+confirms a corner. In the viewer (`--view`) the corner detector is drawn on top of the scene: **cyan lines** are
+the walls the LiDAR finds in the last scan (split-and-merge), a **yellow ball** is a corner candidate (two walls
+meeting at about 90°, close enough and where the odometry expects it), and it turns **green** once it has been
+seen in 5 scans in a row: that is the far corner (end of phase 1) or the start corner (end of phase 2).
+
+In `people` and `full` an **orange person** walks between the robot and the guide twice in phase 1 (at 12 s and
+26 s), covering the back tag. The grey walkers never do it: they avoid the robot and the guide.
+
 ### Results (6 seeds per scenario, 2026-11-27, rules of the exam plan)
 
 LOST after 0.5 s without the tag (the robot stops at once), 5 s turning towards the last bearing before the
-sweep, spoken alerts.
+sweep, spoken alerts; in `people` and `full` a person crosses between the robot and the guide twice.
 
-| Scenario | Both phases done | Link losses (phase 1) | Waits (phase 2) | Serious faults | Minor faults | Max distance [m] | Time > 1.5 m [s] | Start error [m] | Mean time [s] |
-|---|---|---|---|---|---|---|---|---|---|
-| empty | 6/6 | 0 | 6 | 0 | 0 | 1.40 | 0.0 | 0.29 | 86 |
-| static | 6/6 | 74 | 12 | 0 | 0 | 1.40 | 0.0 | 0.28 | 102 |
-| moving | 6/6 | 74 | 12 | 0 | 0 | 1.40 | 0.0 | 0.28 | 102 |
-| people | 6/6 | 94 | 13 | 0 | 0 | 1.40 | 0.0 | 0.28 | 111 |
-| full | 6/6 | 94 | 13 | 0 | 0 | 1.40 | 0.0 | 0.28 | 111 |
+| Scenario | Both phases done | Link losses (phase 1) | Longest loss [s] | Waits (phase 2) | Serious faults | Minor faults | Max distance [m] | Time > 1.5 m [s] | Start error [m] | Mean time [s] |
+|---|---|---|---|---|---|---|---|---|---|---|
+| empty | 6/6 | 0 | 0.0 | 6 | 0 | 0 | 1.40 | 0.0 | 0.29 | 86 |
+| static | 6/6 | 76 | 3.0 | 11 | 0 | 0 | 1.40 | 0.0 | 0.28 | 102 |
+| moving | 6/6 | 76 | 3.0 | 11 | 0 | 0 | 1.40 | 0.0 | 0.28 | 102 |
+| people | 6/6 | 100 | 3.0 | 10 | 0 | 0 | 1.40 | 0.0 | 0.25 | 107 |
+| full | 6/6 | 101 | 3.0 | 10 | 0 | 0 | 1.40 | 0.0 | 0.25 | 107 |
 
 No collisions. Losses and waits are summed over the 6 seeds. A "link loss" is every time the back tag goes
-unseen for more than 0.3 s, however short; it is not the rubric's loss of the link (that tolerates 5 s).
+unseen for more than 0.3 s, however short; **"longest loss" is the longest of them**, to compare with the 5 s
+the rubric tolerates.
 
-- **30/30 runs complete both phases**; the person is never more than 1.4 m away in phase 2 (limit 1.5 m).
-- With LOST at 1.5 s (the robot kept following the Kalman prediction) there were 35 / 41 losses and runs were
-  4–9 s shorter. Stopping at 0.5 s, as the plan asks, doubles the short losses: the robot stops, the person
-  keeps walking a step and leaves the view for a moment.
+- **30/30 runs complete both phases**; the person is never more than 1.4 m away in phase 2 (limit 1.5 m), and
+  the tag is never lost for more than 3.0 s.
+- **The longest loss was 5.2 s** before two fixes: the robot, while LOST, kept extrapolating the person's last
+  velocity and left them at the edge of the D415 view (−34°), inside a 20° dead band where it did not turn. Now
+  the estimate stops moving once the person is asked to wait, and the robot centres it within 6°.
+- With LOST at 1.5 s (the robot kept following the Kalman prediction) there were about half as many short
+  losses. Stopping at 0.5 s, as the plan asks, gives more of them: the robot stops, the person keeps walking a
+  step and leaves the view for a moment.
+- The crossing person was added because the grey walkers never came between the robot and the guide (closest
+  0.48 m from the line of sight in 3 runs). They also had a too-small radius for the robot and once walked into
+  it while it stood still; that was a bug of the simulated people, fixed.
 - **Depth memory matters.** With a 4 s memory a stack that left the D415 view was forgotten while the robot
   turned and it touched one (minor fault). A 20 s memory alone left "ghost" points where the person had walked
   (128 losses, 2 runs not completed). The final version keeps a depth point only if the LiDAR has nothing
@@ -84,7 +101,7 @@ python -m venv .venv && .venv/bin/pip install -r simulation/requirements.txt
 ```
 
 Scenarios: `empty`, `static` (9 stacks of 10 cm + 2 briefcases), `moving` (+ a briefcase pushed during the
-run), `people` (static + 2 people walking across the diagonal), `full` (everything). Each seed changes the
+run), `people` (static + 2 people walking across the diagonal; in the conventional runs also one person who crosses between the robot and the guide), `full` (everything). Each seed changes the
 stack layout, and the noise of the sensors. Ablations: `--no-memory`, `--no-motion`.
 
 ![Example run](example_run.png)
@@ -95,7 +112,7 @@ stack layout, and the noise of the sensors. Ablations: `--no-memory`, `--no-moti
 |------|----------|
 | `world.py` | Builds the room around the unchanged robot XML with MjSpec: walls, tablet stacks, briefcases, people with their signs, a signal light on the robot (used only by the neural simulation, `run_exam.py`; the conventional controller gives every signal on the speaker). |
 | `sensors.py` | LD19 LiDAR at ~16 cm (360 rays, 10 Hz, does **not** see the 10 cm stacks), D415 depth (ray grid in its field of view, sees the stacks), sign cameras (D415 colour at the front, C270 at the rear), odometry (wheel encoders + IMU yaw with drift). |
-| `people.py` | The guide person (walks ahead and stops if the robot falls behind, then walks behind the robot in phase 2, with a pause to test waiting) and walkers driven by a social force model (Helbing & Molnár 1995). |
+| `people.py` | The guide person (walks ahead and stops if the robot falls behind, then walks behind the robot in phase 2, with a pause to test waiting) walkers driven by a social force model (Helbing & Molnár 1995), and the crosser, who walks straight between the robot and the guide to cover the back tag. |
 | `run_exam.py` | Control loop at 20 Hz: sensors → `SocialNavNet` → wheel speeds. Measures the rubric: robot–person distance, collisions (serious / during a manoeuvre), link losses, corner, return to start, time. |
 | `batch.py` | Runs many seeds and the ablations, prints the results table. |
 | `cameras.py` | Rendered camera images (grey and depth) and each camera's pose on the robot, for the conventional controller. |

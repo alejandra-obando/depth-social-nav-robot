@@ -93,6 +93,41 @@ class Walker:
         return self.pos, yaw
 
 
+class Crosser:
+    """Walks straight across the line between the robot and the guide, once.
+
+    At ``t_start`` it appears ``reach`` metres to one side of the midpoint of that line
+    and walks to the same distance on the other side, then leaves the room.  It does
+    not avoid the guide (it passes in front of the back tag on purpose).
+    """
+
+    HIDDEN = np.array([-5.0, -5.0])
+
+    def __init__(self, t_start, side=1, speed=0.8, reach=1.5, room=7.0):
+        self.t_start, self.side, self.speed, self.reach, self.room = t_start, side, speed, reach, room
+        self.pos = self.HIDDEN.copy()
+        self.a = self.b = None
+        self.done = False
+
+    def step(self, dt, t, robot_xy, guide_xy, phase):
+        if self.done or t < self.t_start or (self.a is None and phase != 1):
+            return self.pos, 0.0
+        if self.a is None:
+            r, g = np.asarray(robot_xy, dtype=float), np.asarray(guide_xy, dtype=float)
+            d = (g - r) / max(np.linalg.norm(g - r), 1e-6)
+            mid, perp = (r + g) / 2, np.array([-d[1], d[0]]) * self.side
+            self.a = np.clip(mid + perp * self.reach, 0.3, self.room - 0.3)
+            self.b = np.clip(mid - perp * self.reach, 0.3, self.room - 0.3)
+            self.pos = self.a.copy()
+        d = self.b - self.pos
+        n = np.linalg.norm(d)
+        if n < self.speed * dt:
+            self.done, self.pos = True, self.HIDDEN.copy()
+            return self.pos, 0.0
+        self.pos = self.pos + d / n * self.speed * dt
+        return self.pos, float(np.arctan2(d[1], d[0]))
+
+
 def set_mocap(model, data, body_name, xy, yaw, z=0.0):
     mid = model.body(body_name).mocapid[0]
     data.mocap_pos[mid] = [xy[0], xy[1], z]

@@ -39,6 +39,7 @@ class Layout:
     briefcases: list = field(default_factory=list)   # (x, y, yaw) static briefcases
     moving_briefcase: tuple = None                   # (x0, y0, x1, y1, t_start, duration)
     walkers: list = field(default_factory=list)      # list of goal loops [(x, y), ...]
+    crossers: list = field(default_factory=list)     # (t_start [s], side +1/-1): crosses robot-guide line in phase 1
     guide_path: list = field(default_factory=list)   # waypoints of the guide person in phase 1
     sign_heights: tuple = (0.30, 1.10)               # (back sign, front sign) heights [m]
 
@@ -49,7 +50,8 @@ def make_layout(scenario="full", seed=0):
     empty   : only the walls
     static  : + 9 tablet stacks and 2 briefcases
     moving  : + one briefcase that is pushed during the run
-    people  : static + 2 people walking across the diagonal
+    people  : static + 2 people walking across the diagonal + 1 person who walks
+              between the robot and the guide twice in phase 1 (covers the back tag)
     full    : everything (closest to the exam)
     """
     rng = np.random.default_rng(seed)
@@ -79,6 +81,9 @@ def make_layout(scenario="full", seed=0):
             [(1.0, 5.8), (5.5, 1.2)],           # crosses the diagonal in the middle
             [(3.0, 6.4), (6.4, 3.0), (2.0, 2.6)],
         ]
+        # The walkers above avoid the robot and the guide, so they never come between them;
+        # this one does, on purpose (the tag is hidden for about a second each time).
+        lay.crossers = [(12.0, 1), (26.0, -1)]
     return lay
 
 
@@ -173,6 +178,8 @@ def build(layout: Layout, tags=False):
                 tags=tags)
     for i in range(len(layout.walkers)):
         _add_person(spec, f"walker_{i}", [0.6, 0.6, 0.6, 1])
+    for i in range(len(layout.crossers)):
+        _add_person(spec, f"crosser_{i}", [0.9, 0.5, 0.15, 1])
 
     # Signal light on top of the robot (green when the robot gives its visual signal).
     base = spec.body("base")

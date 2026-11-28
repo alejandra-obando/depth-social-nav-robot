@@ -30,13 +30,14 @@ import numpy as np  # noqa: E402
 
 from . import world as W  # noqa: E402
 from .cameras import RenderedCamera, RenderedDepth, mount_from_model  # noqa: E402
-from .people import GuidePerson, Walker, set_mocap  # noqa: E402
+from .people import Crosser, GuidePerson, Walker, set_mocap  # noqa: E402
 from .sensors import Lidar, Odometry  # noqa: E402
 from .software_path import add_software_to_path  # noqa: E402
 
 add_software_to_path()
 
 from bringup.sounds import PHRASES  # noqa: E402
+from corners.line_extraction import extract_segments  # noqa: E402
 from navigation.diff_drive import DiffDrive  # noqa: E402
 from navigation.navigator import Navigator, Observation, Params  # noqa: E402
 from perception.apriltag_detector import TagDetector  # noqa: E402
@@ -60,6 +61,7 @@ def run(scenario="full", seed=0, max_time=400.0, view=False, lag_events=((15.0, 
     guide = GuidePerson([W.START + np.array([0.9, 0.9]) / np.sqrt(2) * 1.0] + layout.guide_path,
                         lag_events=lag_events)
     walkers = [Walker(g, seed=seed + i) for i, g in enumerate(layout.walkers)]
+    crossers = [Crosser(ts, side) for ts, side in layout.crossers]
     set_mocap(model, data, "guide", guide.pos, guide.yaw)
     for _ in range(int(1.0 / model.opt.timestep)):     # let the robot settle
         mujoco.mj_step(model, data)
@@ -86,22 +88,30 @@ def run(scenario="full", seed=0, max_time=400.0, view=False, lag_events=((15.0, 
         from mujoco import viewer as mj_viewer
         viewer = mj_viewer.launch_passive(model, data)
 
-    log = {k: [] for k in ("t", "rx", "ry", "px", "py", "dist", "state", "phase", "seen", "v", "omega",
+    log = {k: [] for k in ("t", "rx", "ry", "ryaw", "px", "py", "pyaw", "dist", "state", "phase", "seen", "v", "omega",
                            "walkers")}
     alerts, last_contact, collisions, omega_hist = [], {}, [], []
     t, step_i, t0_wall = 0.0, 0, time.time()
     corner_time = done_time = None
+    corners_seen = set()
+    said = {}
     detect_ms = []
 
     while t < max_time:
-        rx, ry, _ = W.robot_pose(model, data)
+        rx, ry, ryaw = W.robot_pose(model, data)
+        scan_pose = (rx, ry, ryaw)               # true pose when the scan below is taken (for drawing)
         gpos, gyaw = guide.step(CONTROL_DT, t, (rx, ry), nav.state.phase)
         set_mocap(model, data, "guide", gpos, gyaw)
-        others_base = [((rx, ry), 0.25), (tuple(gpos), 0.35)]
+        # Radii the walkers keep away from: robot 0.165 m + person 0.18 m (with 0.25 they stopped
+        # touching a robot that stood still).
+        others_base = [((rx, ry), 0.35), (tuple(gpos), 0.35)]
         for i, wk in enumerate(walkers):
             others = others_base + [(tuple(o.pos), 0.4) for j, o in enumerate(walkers) if j != i]
             p, yaw = wk.step(CONTROL_DT, others)
             set_mocap(model, data, f"walker_{i}", p, yaw)
+        for i, cr in enumerate(crossers):
+            p, yaw = cr.step(CONTROL_DT, t, (rx, ry), gpos, nav.state.phase)
+            set_mocap(model, data, f"crosser_{i}", p, yaw)
         if layout.moving_briefcase is not None:
             x0, y0, x1, y1, ts, dur = layout.moving_briefcase
             a = np.clip((t - ts) / dur, 0, 1)
@@ -124,8 +134,12 @@ def run(scenario="full", seed=0, max_time=400.0, view=False, lag_events=((15.0, 
         data.ctrl[:] = [-wl, wr]                 # motor_izq is mounted mirrored: negative is forward
         if cmd.alert:                            # the signals are spoken (speaker), no light
             alerts.append((round(t, 2), cmd.alert))
-            if not quiet:
-                print(f"  t = {t:6.2f} s  speaker: {PHRASES[cmd.alert]}")
+            # What the speaker says: speaker_node does not repeat a phrase within 6 s,
+            # except the end-of-phase signals.
+            if t - said.get(cmd.alert, -1e9) >= SPEAKER_MIN_INTERVAL or cmd.alert in ("corner", "done"):
+                said[cmd.alert] = t
+                if not quiet:
+                    print(f"  t = {t:6.2f} s  speaker: {PHRASES[cmd.alert]}")
         omega_hist = (omega_hist + [abs(cmd.omega)])[-20:]
 
         for _ in range(n_sub):
@@ -148,6 +162,7 @@ def run(scenario="full", seed=0, max_time=400.0, view=False, lag_events=((15.0, 
         rx, ry, _ = W.robot_pose(model, data)
         log["t"].append(t); log["rx"].append(rx); log["ry"].append(ry)
         log["px"].append(gpos[0]); log["py"].append(gpos[1])
+        log["ryaw"].append(W.robot_pose(model, data)[2]); log["pyaw"].append(gyaw)
         log["dist"].append(float(np.hypot(gpos[0] - rx, gpos[1] - ry)))
         log["state"].append(cmd.state); log["phase"].append(cmd.phase)
         log["seen"].append(cmd.debug["person_age"] < 0.3)
@@ -157,7 +172,15 @@ def run(scenario="full", seed=0, max_time=400.0, view=False, lag_events=((15.0, 
             corner_time = t
         if cmd.state == "DONE" and done_time is None:
             done_time = t
+        for name, conf in (("far", nav.far_corner), ("start", nav.home_corner)):
+            if conf.confirmed and name not in corners_seen:
+                corners_seen.add(name)
+                if not quiet:
+                    print(f"  t = {t:6.2f} s  LiDAR: {name} corner confirmed {conf.last.distance:.2f} m away, "
+                          f"{np.degrees(conf.last.bearing):+.0f} deg, walls at {np.degrees(conf.last.angle):.0f} deg")
         if viewer is not None:
+            if obs.scan is not None:
+                draw_lidar_view(viewer, scan_pose, obs.scan, nav)
             viewer.sync()
             time.sleep(max(0.0, CONTROL_DT - (time.time() - t0_wall - t)))
             if not viewer.is_running():
@@ -179,6 +202,54 @@ def run(scenario="full", seed=0, max_time=400.0, view=False, lag_events=((15.0, 
     if not quiet:
         print(json.dumps({k: v for k, v in summary.items() if k != "transitions"}, indent=2))
     return summary, log
+
+
+SPEAKER_MIN_INTERVAL = 6.0      # min_interval of speaker_node
+
+
+def _longest_gap(flags, dt):
+    """Longest run of False after the first True, in seconds."""
+    best = cur = 0
+    started = False
+    for f in flags:
+        started |= bool(f)
+        cur = 0 if f else cur + 1
+        if started:
+            best = max(best, cur)
+    return round(best * dt, 2)
+
+
+def draw_lidar_view(viewer, pose, scan, nav):
+    """Draws in the viewer what the corner detector sees: the wall segments of the last
+    scan (cyan), the corner candidate (yellow) and the confirmed corner (green)."""
+    rx, ry, yaw = pose
+    c, s = np.cos(yaw), np.sin(yaw)
+
+    def world(p, z):
+        return np.array([rx + c * p[0] - s * p[1], ry + s * p[0] + c * p[1], z])
+
+    conf = nav.far_corner if nav.state.phase == 1 else nav.home_corner
+    with viewer.lock():
+        scn = viewer.user_scn
+        scn.ngeom = 0
+
+        def add(kind, size, pos, rgba):
+            if scn.ngeom >= scn.maxgeom:
+                return None
+            g = scn.geoms[scn.ngeom]
+            mujoco.mjv_initGeom(g, kind, np.asarray(size, float), np.asarray(pos, float), np.eye(3).ravel(),
+                                np.asarray(rgba, np.float32))
+            scn.ngeom += 1
+            return g
+
+        for seg in extract_segments(*scan):
+            g = add(mujoco.mjtGeom.mjGEOM_CAPSULE, [0.015, 0, 0], [0, 0, 0], [0.1, 0.9, 0.9, 0.8])
+            if g is not None:
+                mujoco.mjv_connector(g, mujoco.mjtGeom.mjGEOM_CAPSULE, 0.015, world(seg.p0, 0.17), world(seg.p1, 0.17))
+        if conf.last is not None and conf.count > 0:
+            done = conf.confirmed
+            add(mujoco.mjtGeom.mjGEOM_SPHERE, [0.12 if done else 0.08, 0, 0], world((conf.last.x, conf.last.y), 0.3),
+                [0.1, 0.9, 0.2, 0.9] if done else [1.0, 0.85, 0.1, 0.9])
 
 
 def _episodes(flags):
@@ -210,6 +281,7 @@ def summarise(log, collisions, corner_time, done_time):
         max_distance_m=round(float(dist.max()), 2),
         time_over_1_5m_s=round(float((dist > 1.5).sum() * CONTROL_DT), 1),
         link_losses_phase1=_episodes(np.array(log["seen"])[phase == 1]),
+        longest_loss_phase1_s=_longest_gap(np.array(log["seen"])[phase == 1], CONTROL_DT),
         lost_episodes=int(np.sum((state[1:] == "LOST") & (state[:-1] != "LOST"))),
         wait_episodes=int(np.sum((state[1:] == "WAIT_PERSON") & (state[:-1] != "WAIT_PERSON"))),
         collisions=collisions,
