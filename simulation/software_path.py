@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 SRC = Path(__file__).resolve().parent.parent / "software" / "src"
-PACKAGES = ("perception", "corners", "navigation")
+PACKAGES = ("perception", "corners", "navigation", "bringup")
 
 
 def add_software_to_path():

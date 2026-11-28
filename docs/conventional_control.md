@@ -60,7 +60,7 @@ flowchart TB
 |-------|----------------|---------------------|---------|
 | FOLLOW | start; tag seen again | Waits until the back tag is seen, then drives towards the person, 0.9 m from the back tag; VFH changes the direction around obstacles | "Sígueme" (first time), "Te encontré", "Ten cuidado con los obstáculos" |
 | LOST | back tag unseen for > 0.5 s | Stops at once; for 5 s turns the front camera towards the last estimate, then sweeps slowly in place | "No te veo, espérame", every 6 s |
-| SIGNAL | far corner confirmed by the LiDAR | Stops for 3 s | "Fase uno completa. Ahora te guío de regreso" (+ blinking light in simulation) |
+| SIGNAL | far corner confirmed by the LiDAR | Stops for 3 s | "Fase uno completa. Ahora te guío de regreso" |
 | TURN_AROUND | after the signal | Turns in place towards the start; the person tracker restarts with the chest tag | – |
 | GUIDE | rear camera sees the chest tag and the robot faces the start | Drives to the start (odometry), VFH around obstacles, slows down if the person falls behind | "Sígueme", "Te encontré" |
 | WAIT_PERSON | person > 1.2 m away or chest tag unseen for > 2.5 s | Stops; for 5 s turns the rear camera towards the person, then sweeps | "Te espero", every 6 s |

@@ -131,8 +131,9 @@ same name (e.g. `arecord -f S16_LE -r 22050 -c 1 lost.wav`). The same phrase is 
 | `wait.wav` | "Te espero" | WAIT_PERSON (person > 1.2 m or unseen 2.5 s); every 6 s |
 | `done.wav` | "Llegamos. Fin del recorrido" | start corner reached |
 
-Not done yet (kept simple on purpose): the LED for the end-of-phase signal, and correcting the odometry with the
-walls on the way back (in simulation the robot ends within 0.31 m of the start without it).
+Every signal of the exam is spoken by the speaker, including the end of phase 1 ("Fase uno completa…"):
+the robot has no LED. Not done yet (kept simple on purpose): correcting the odometry with the walls on the way
+back (in simulation the robot ends within 0.29 m of the start without it).
 
 The neural models in `../neural` can later replace pieces of this controller one at a time; the conventional
 version stays as the fallback.

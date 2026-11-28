@@ -36,6 +36,7 @@ from .software_path import add_software_to_path  # noqa: E402
 
 add_software_to_path()
 
+from bringup.sounds import PHRASES  # noqa: E402
 from navigation.diff_drive import DiffDrive  # noqa: E402
 from navigation.navigator import Navigator, Observation, Params  # noqa: E402
 from perception.apriltag_detector import TagDetector  # noqa: E402
@@ -79,7 +80,6 @@ def run(scenario="full", seed=0, max_time=400.0, view=False, lag_events=((15.0, 
     drive = DiffDrive()
 
     robot_bodies = {model.body(n).id for n in ("base", "part_2", "part_2_2")}
-    light = model.geom("signal_light").id
     n_sub = int(round(CONTROL_DT / model.opt.timestep))
     viewer = None
     if view:
@@ -122,10 +122,10 @@ def run(scenario="full", seed=0, max_time=400.0, view=False, lag_events=((15.0, 
         cmd = nav.step(obs)
         wl, wr = drive.to_wheels(cmd.v, cmd.omega)
         data.ctrl[:] = [-wl, wr]                 # motor_izq is mounted mirrored: negative is forward
-        if cmd.alert:
+        if cmd.alert:                            # the signals are spoken (speaker), no light
             alerts.append((round(t, 2), cmd.alert))
-        blink = cmd.state in ("SIGNAL", "DONE") and int(t * 4) % 2 == 0
-        model.geom_rgba[light] = [0.1, 1.0, 0.2, 1] if blink else [0.3, 0.3, 0.3, 1]
+            if not quiet:
+                print(f"  t = {t:6.2f} s  speaker: {PHRASES[cmd.alert]}")
         omega_hist = (omega_hist + [abs(cmd.omega)])[-20:]
 
         for _ in range(n_sub):

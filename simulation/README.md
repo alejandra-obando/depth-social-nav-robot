@@ -93,7 +93,7 @@ stack layout, and the noise of the sensors. Ablations: `--no-memory`, `--no-moti
 
 | File | Contents |
 |------|----------|
-| `world.py` | Builds the room around the unchanged robot XML with MjSpec: walls, tablet stacks, briefcases, people with their signs, a signal light on the robot. |
+| `world.py` | Builds the room around the unchanged robot XML with MjSpec: walls, tablet stacks, briefcases, people with their signs, a signal light on the robot (used only by the neural simulation, `run_exam.py`; the conventional controller gives every signal on the speaker). |
 | `sensors.py` | LD19 LiDAR at ~16 cm (360 rays, 10 Hz, does **not** see the 10 cm stacks), D415 depth (ray grid in its field of view, sees the stacks), sign cameras (D415 colour at the front, C270 at the rear), odometry (wheel encoders + IMU yaw with drift). |
 | `people.py` | The guide person (walks ahead and stops if the robot falls behind, then walks behind the robot in phase 2, with a pause to test waiting) and walkers driven by a social force model (Helbing & Molnár 1995). |
 | `run_exam.py` | Control loop at 20 Hz: sensors → `SocialNavNet` → wheel speeds. Measures the rubric: robot–person distance, collisions (serious / during a manoeuvre), link losses, corner, return to start, time. |
