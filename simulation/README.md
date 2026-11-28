@@ -43,19 +43,26 @@ node**, and gives it what the real sensors would:
 
 Rendering needs OpenGL; without a display the scripts use `MUJOCO_GL=egl`. A run takes about one minute.
 
-### Results (6 seeds per scenario, 2026-11-27)
+### Results (6 seeds per scenario, 2026-11-27, rules of the exam plan)
+
+LOST after 0.5 s without the tag (the robot stops at once), 5 s turning towards the last bearing before the
+sweep, spoken alerts.
 
 | Scenario | Both phases done | Link losses (phase 1) | Waits (phase 2) | Serious faults | Minor faults | Max distance [m] | Time > 1.5 m [s] | Start error [m] | Mean time [s] |
 |---|---|---|---|---|---|---|---|---|---|
 | empty | 6/6 | 0 | 6 | 0 | 0 | 1.40 | 0.0 | 0.29 | 86 |
-| static | 6/6 | 35 | 12 | 0 | 0 | 1.40 | 0.0 | 0.29 | 98 |
-| moving | 6/6 | 35 | 12 | 0 | 0 | 1.40 | 0.0 | 0.29 | 98 |
-| people | 6/6 | 41 | 16 | 0 | 0 | 1.40 | 0.0 | 0.31 | 102 |
-| full | 6/6 | 41 | 16 | 0 | 0 | 1.40 | 0.0 | 0.31 | 102 |
+| static | 6/6 | 74 | 12 | 0 | 0 | 1.40 | 0.0 | 0.28 | 102 |
+| moving | 6/6 | 74 | 12 | 0 | 0 | 1.40 | 0.0 | 0.28 | 102 |
+| people | 6/6 | 94 | 13 | 0 | 0 | 1.40 | 0.0 | 0.28 | 111 |
+| full | 6/6 | 94 | 13 | 0 | 0 | 1.40 | 0.0 | 0.28 | 111 |
 
-No collisions. Losses and waits are summed over the 6 seeds.
+No collisions. Losses and waits are summed over the 6 seeds. A "link loss" is every time the back tag goes
+unseen for more than 0.3 s, however short; it is not the rubric's loss of the link (that tolerates 5 s).
 
 - **30/30 runs complete both phases**; the person is never more than 1.4 m away in phase 2 (limit 1.5 m).
+- With LOST at 1.5 s (the robot kept following the Kalman prediction) there were 35 / 41 losses and runs were
+  4–9 s shorter. Stopping at 0.5 s, as the plan asks, doubles the short losses: the robot stops, the person
+  keeps walking a step and leaves the view for a moment.
 - **Depth memory matters.** With a 4 s memory a stack that left the D415 view was forgotten while the robot
   turned and it touched one (minor fault). A 20 s memory alone left "ghost" points where the person had walked
   (128 losses, 2 runs not completed). The final version keeps a depth point only if the LiDAR has nothing
